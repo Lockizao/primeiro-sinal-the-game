@@ -1,0 +1,3185 @@
+<!doctype html>
+<title>Primeiro Sinal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Karla:ital,wght@0,400;0,500;0,700;1,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#f3ecd8;
+  --paper-line:#e1d3a9;
+  --ink:#22301f;
+  --muted:#726a56;
+  --surface:#fffaf0;
+  --surface-2:#ece1c4;
+  --green:#1f6f5c;
+  --green-deep:#123f34;
+  --mango:#ec9a2e;
+  --mango-deep:#a86618;
+  --brick:#b8492c;
+  --sky:#6fb8dc;
+  --shadow:rgba(24,32,20,.22);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#141d18;
+    --paper-line:#26352b;
+    --ink:#ece6d6;
+    --muted:#9c9484;
+    --surface:#1c2721;
+    --surface-2:#243128;
+    --green:#5cbfa0;
+    --green-deep:#2c5a4a;
+    --mango:#f0ac53;
+    --mango-deep:#ffcf85;
+    --brick:#e0805e;
+    --sky:#5a8ba2;
+    --shadow:rgba(0,0,0,.5);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#141d18;
+  --paper-line:#26352b;
+  --ink:#ece6d6;
+  --muted:#9c9484;
+  --surface:#1c2721;
+  --surface-2:#243128;
+  --green:#5cbfa0;
+  --green-deep:#2c5a4a;
+  --mango:#f0ac53;
+  --mango-deep:#ffcf85;
+  --brick:#e0805e;
+  --sky:#5a8ba2;
+  --shadow:rgba(0,0,0,.5);
+}
+
+*{box-sizing:border-box;}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:'Karla',sans-serif;
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:28px 16px;
+  background-image:
+    linear-gradient(var(--paper-line) 1px, transparent 1px);
+  background-size: 100% 34px;
+}
+h1,h2,h3{font-family:'Baloo 2',sans-serif; text-wrap:balance; margin:0;}
+.mono{font-family:'Space Mono',monospace; font-variant-numeric:tabular-nums;}
+button{font-family:'Karla',sans-serif; cursor:pointer;}
+button:focus-visible, input:focus-visible, .card:focus-visible{outline:3px solid var(--mango); outline-offset:2px;}
+
+#stage{
+  width:min(960px, 100%);
+  position:relative;
+}
+
+/* ---------- shared "index card" chrome ---------- */
+.folder{
+  background:var(--surface);
+  border:2px solid var(--green-deep);
+  border-radius:4px;
+  box-shadow:0 10px 26px var(--shadow), inset 0 0 0 5px var(--paper);
+  padding:34px clamp(18px,4vw,48px);
+  position:relative;
+}
+.folder::before{
+  content:"";
+  position:absolute; top:14px; left:14px;
+  width:16px; height:16px;
+  border-radius:50%;
+  background:var(--paper);
+  box-shadow:0 0 0 2px var(--green-deep), 28px 0 0 -2px var(--paper), 28px 0 0 0 var(--green-deep);
+}
+.eyebrow{
+  font-family:'Space Mono',monospace;
+  text-transform:uppercase;
+  letter-spacing:.14em;
+  font-size:.72rem;
+  color:var(--muted);
+  margin-bottom:6px;
+}
+.tape{
+  position:absolute; top:-10px; width:56px; height:22px;
+  background:var(--mango); opacity:.85;
+  box-shadow:0 2px 4px var(--shadow);
+}
+.tape.left{ left:36px; transform:rotate(-6deg); }
+.tape.right{ right:36px; transform:rotate(5deg); }
+
+/* ---------- menu ---------- */
+#screen-menu{ text-align:center; padding-top:56px; padding-bottom:56px; }
+#screen-menu h1{ font-size:clamp(2.4rem,6vw,3.6rem); color:var(--green); }
+#screen-menu .tagline{ font-style:italic; color:var(--muted); margin-top:8px; font-size:1.05rem; }
+#screen-menu .badge-row{ display:flex; gap:10px; justify-content:center; margin:22px 0 30px; flex-wrap:wrap; }
+.badge{ font-family:'Space Mono',monospace; font-size:.72rem; letter-spacing:.06em; padding:5px 11px; border-radius:999px; background:var(--surface-2); color:var(--muted); border:1px solid var(--paper-line); }
+
+.btn-primary{
+  background:var(--mango); color:var(--green-deep); border:none;
+  font-family:'Baloo 2',sans-serif; font-weight:700; font-size:1.15rem;
+  padding:14px 34px; border-radius:6px;
+  box-shadow:0 4px 0 var(--mango-deep);
+  transition:transform .08s ease;
+}
+.btn-primary:hover{ transform:translateY(-1px); }
+.btn-primary:active{ transform:translateY(3px); box-shadow:0 1px 0 var(--mango-deep); }
+.btn-ghost{
+  background:transparent; border:2px solid var(--green); color:var(--green);
+  font-family:'Baloo 2',sans-serif; font-weight:700; font-size:1rem;
+  padding:11px 24px; border-radius:6px;
+}
+
+/* ---------- character / family forms ---------- */
+.form-grid{ display:grid; grid-template-columns: 1.3fr 1fr; gap:36px; align-items:start; margin-top:22px; }
+@media (max-width:640px){ .form-grid{ grid-template-columns:1fr; } }
+.field{ margin-bottom:20px; }
+.field label{ display:block; font-weight:700; margin-bottom:7px; font-size:.95rem; }
+.field input[type=text]{
+  width:100%; padding:11px 13px; font-size:1rem; font-family:'Karla',sans-serif;
+  border:2px solid var(--paper-line); border-radius:5px; background:var(--paper); color:var(--ink);
+}
+.swatch-row{ display:flex; gap:9px; flex-wrap:wrap; }
+.swatch{
+  width:34px; height:34px; border-radius:50%; border:3px solid transparent;
+  cursor:pointer; box-shadow:0 1px 3px var(--shadow);
+}
+.swatch.active{ border-color:var(--green); }
+.preview-panel{
+  background:var(--surface-2); border:1px dashed var(--paper-line); border-radius:6px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px;
+  padding:20px;
+}
+.preview-panel .label{ font-family:'Space Mono',monospace; font-size:.7rem; color:var(--muted); letter-spacing:.08em; text-transform:uppercase; }
+
+.income-cards{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+@media (max-width:520px){ .income-cards{ grid-template-columns:1fr; } }
+.income-card{
+  text-align:left; background:var(--paper); border:2px solid var(--paper-line); border-radius:6px;
+  padding:16px; cursor:pointer;
+}
+.income-card h3{ font-size:1.05rem; color:var(--green); margin-bottom:6px; }
+.income-card p{ margin:0; font-size:.87rem; color:var(--muted); line-height:1.45; }
+.income-card.active{ border-color:var(--mango); background:var(--surface); box-shadow:0 0 0 2px var(--mango) inset; }
+
+.form-actions{ display:flex; justify-content:flex-end; margin-top:10px; }
+
+/* ---------- game screen ---------- */
+#screen-game .folder{ padding:16px; }
+#game-frame{
+  position:relative; border-radius:3px; overflow:hidden;
+  border:5px solid var(--green-deep);
+  box-shadow: inset 0 0 0 3px var(--paper), 0 8px 20px var(--shadow);
+}
+#game-frame .corner{
+  position:absolute; width:14px; height:14px; background:var(--mango); z-index:5;
+}
+#game-frame .corner.tl{ top:-2px; left:-2px; }
+#game-frame .corner.tr{ top:-2px; right:-2px; }
+#game-frame .corner.bl{ bottom:-2px; left:-2px; }
+#game-frame .corner.br{ bottom:-2px; right:-2px; }
+
+canvas#game{ display:block; width:100%; height:auto; background:#8fbf76; }
+
+#hud{
+  position:absolute; top:10px; left:10px; right:10px;
+  display:flex; justify-content:space-between; align-items:flex-start; gap:8px; flex-wrap:wrap;
+  pointer-events:none; z-index:4;
+}
+.hud-pill{
+  font-family:'Space Mono',monospace; font-size:.78rem; letter-spacing:.03em;
+  background:rgba(20,29,24,.82); color:#f3ecd8;
+  padding:7px 13px; border-radius:999px; border:1px solid rgba(255,255,255,.15);
+}
+.hud-player{
+  font-family:'Space Mono',monospace; font-size:.75rem;
+  background:rgba(20,29,24,.82); color:#f3ecd8;
+  padding:6px 12px; border-radius:999px; border:1px solid rgba(255,255,255,.15);
+  display:flex; align-items:center; gap:8px;
+}
+.hud-swatch{ width:12px; height:12px; border-radius:50%; display:inline-block; }
+
+#stat-bars{
+  position:absolute; top:52px; left:10px; z-index:4;
+}
+#stat-bars button{
+  background:rgba(20,29,24,.82); border:1px solid rgba(255,255,255,.15); border-radius:8px;
+  padding:7px 9px; display:flex; flex-direction:column; gap:4px; cursor:pointer;
+}
+.stat-row{ display:flex; align-items:center; gap:6px; }
+.stat-icon{ font-size:.7rem; width:14px; text-align:center; }
+.stat-track{
+  width:70px; height:6px; border-radius:999px; background:rgba(255,255,255,.18); overflow:hidden;
+}
+.stat-track.big{ width:180px; height:10px; }
+#btn-npc-editor{
+  position:absolute; top:52px; left:112px; z-index:4;
+  background:rgba(20,29,24,.82); border:1px solid rgba(255,255,255,.15); border-radius:8px;
+  width:34px; height:34px; font-size:1.05rem; cursor:pointer; line-height:1;
+}
+.stat-fill{ display:block; height:100%; border-radius:999px; transition:width .25s ease; }
+#bar-health, #sheet-health{ background:var(--brick); }
+#bar-energy, #sheet-energy{ background:var(--mango); }
+#bar-mood, #sheet-mood{ background:var(--green); }
+
+#sheet-modal{
+  position:absolute; inset:0; z-index:8; background:rgba(20,29,24,.65);
+  display:flex; align-items:center; justify-content:center; padding:20px;
+}
+#sheet-modal .card{
+  background:var(--surface); border:2px solid var(--green-deep); border-radius:6px;
+  padding:26px clamp(18px,4vw,34px); width:min(460px,100%);
+  box-shadow:0 14px 30px var(--shadow);
+}
+#sheet-modal h2{ color:var(--green); font-size:1.4rem; margin-bottom:4px; }
+#sheet-modal .sub{ color:var(--muted); font-size:.85rem; margin-bottom:18px; }
+.sheet-section{ margin-bottom:18px; }
+.sheet-label{
+  font-family:'Space Mono',monospace; text-transform:uppercase; letter-spacing:.08em;
+  font-size:.68rem; color:var(--muted); margin-bottom:9px;
+}
+.sheet-need{ display:flex; align-items:center; gap:10px; margin-bottom:9px; font-size:.88rem; }
+.sheet-need > span:first-child{ width:80px; flex:none; }
+.sheet-val{ width:30px; text-align:right; color:var(--muted); font-size:.8rem; }
+.attr-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.attr-item{
+  background:var(--surface-2); border:1px solid var(--paper-line); border-radius:5px;
+  padding:9px 11px; display:flex; justify-content:space-between; align-items:center; font-size:.88rem;
+}
+.attr-item .v{ font-family:'Space Mono',monospace; color:var(--green); font-weight:700; }
+.sheet-note{ font-size:.78rem; color:var(--muted); margin:10px 0 0; line-height:1.4; }
+.rel-row{
+  display:flex; justify-content:space-between; align-items:center;
+  padding:7px 0; border-bottom:1px solid var(--paper-line); font-size:.88rem;
+}
+.rel-row:last-child{ border-bottom:none; }
+.rel-row .tier{ font-size:.8rem; color:var(--muted); }
+.fac-row{ display:flex; justify-content:space-between; align-items:center; padding:6px 0; font-size:.85rem; }
+.fac-row .v{ font-family:'Space Mono',monospace; color:var(--green); }
+
+#dayend-modal{
+  position:absolute; inset:0; z-index:9; background:rgba(20,29,24,.72);
+  display:flex; align-items:center; justify-content:center; padding:20px; overflow-y:auto;
+}
+#dayend-modal .card{
+  background:var(--surface); border:2px solid var(--green-deep); border-radius:6px;
+  padding:26px clamp(18px,4vw,34px); box-shadow:0 14px 30px var(--shadow);
+  width:min(460px,100%); max-height:92%; overflow-y:auto;
+}
+#dayend-modal h2{ color:var(--green); font-size:1.5rem; margin-bottom:4px; }
+#dayend-modal .sub{ color:var(--muted); font-size:.88rem; margin-bottom:16px; }
+#dayend-modal .btn-primary{ width:100%; margin-top:4px; }
+
+#npc-editor-modal{
+  position:absolute; inset:0; z-index:9; background:rgba(20,29,24,.72);
+  display:flex; align-items:center; justify-content:center; padding:20px; overflow-y:auto;
+}
+#npc-editor-modal .card{
+  background:var(--surface); border:2px solid var(--green-deep); border-radius:6px;
+  padding:26px clamp(18px,4vw,34px); box-shadow:0 14px 30px var(--shadow);
+  width:min(580px,100%); max-height:92%; overflow-y:auto;
+}
+#npc-editor-modal h2{ color:var(--green); font-size:1.4rem; margin-bottom:4px; }
+#npc-editor-modal .sub{ color:var(--muted); font-size:.85rem; margin-bottom:16px; }
+.npc-editor-body{ display:flex; gap:18px; }
+#npc-editor-list{ display:flex; flex-direction:column; gap:6px; width:150px; flex:none; max-height:360px; overflow-y:auto; }
+#npc-editor-list button{
+  text-align:left; background:var(--surface-2); border:1px solid var(--paper-line); color:var(--ink);
+  padding:7px 10px; border-radius:5px; font-size:.83rem; cursor:pointer;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+#npc-editor-list button.active{ border-color:var(--mango); box-shadow:0 0 0 1px var(--mango) inset; }
+#npc-editor-form{ flex:1; display:flex; flex-direction:column; gap:12px; align-items:flex-start; min-width:0; }
+#npce-preview{ align-self:center; image-rendering:pixelated; }
+
+#fight-modal{
+  position:absolute; inset:0; z-index:9; background:rgba(20,29,24,.72);
+  display:flex; align-items:center; justify-content:center; padding:20px;
+}
+.fight-card{ width:min(480px,100%); }
+.fight-card h2{ color:var(--brick); font-size:1.4rem; margin-bottom:16px; }
+.fight-bars{ display:flex; gap:16px; margin-bottom:16px; }
+.fight-side{ flex:1; }
+.fight-name{ font-weight:700; font-size:.88rem; margin-bottom:6px; }
+.fight-side .stat-track.big{ width:100%; }
+.fight-side .stat-fill{ background:var(--brick); }
+#fight-log{
+  min-height:2.6em; font-size:.9rem; color:var(--ink); line-height:1.4;
+  background:var(--surface-2); border-radius:5px; padding:10px 12px; margin-bottom:14px;
+}
+.fight-moves{ display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+.fight-moves button{
+  background:var(--surface-2); border:1px solid var(--paper-line); color:var(--ink);
+  padding:10px 12px; border-radius:5px; font-size:.86rem; text-align:left;
+}
+.fight-moves button:hover:not(:disabled){ border-color:var(--brick); }
+.fight-moves button:disabled{ opacity:.4; cursor:not-allowed; }
+.fight-moves button.flee{ grid-column:1 / -1; text-align:center; color:var(--muted); }
+#fight-result{ margin-top:14px; text-align:center; }
+#fight-result-text{ margin-bottom:12px; line-height:1.5; }
+
+#toast{
+  position:absolute; top:52px; left:50%; transform:translateX(-50%);
+  background:rgba(20,29,24,.88); color:#f3ecd8; font-size:.85rem;
+  padding:8px 16px; border-radius:6px; z-index:4; max-width:80%; text-align:center;
+  transition:opacity .4s ease;
+}
+
+#caption{
+  position:absolute; left:50%; bottom:96px; transform:translateX(-50%);
+  width:min(560px,88%);
+  background:rgba(20,29,24,.9); color:#f3ecd8; border-left:4px solid var(--mango);
+  padding:12px 16px; border-radius:4px; font-size:.9rem; line-height:1.4; z-index:4;
+}
+#caption .who{ font-family:'Space Mono',monospace; font-size:.68rem; letter-spacing:.08em; color:var(--mango); text-transform:uppercase; margin-bottom:4px; }
+
+#interact-prompt{
+  position:absolute; left:50%; bottom:52px; transform:translateX(-50%);
+  font-family:'Space Mono',monospace; font-size:.78rem;
+  background:var(--mango); color:var(--green-deep); padding:6px 14px; border-radius:999px;
+  z-index:4; box-shadow:0 3px 0 var(--mango-deep);
+}
+kbd{ background:var(--green-deep); color:#fff; padding:1px 6px; border-radius:3px; font-family:'Space Mono',monospace; }
+
+#dialogue{
+  position:absolute; left:50%; bottom:16px; transform:translateX(-50%);
+  width:min(640px,92%);
+  background:var(--surface); border:2px solid var(--green-deep); border-radius:6px;
+  padding:16px 18px; z-index:6; box-shadow:0 8px 20px var(--shadow);
+}
+#dialogue .who{ font-family:'Baloo 2',sans-serif; font-weight:700; color:var(--green); margin-bottom:6px; }
+#dialogue .line{ margin:0 0 14px; line-height:1.5; }
+#dialogue .replies{ display:flex; gap:10px; flex-wrap:wrap; }
+#dialogue .replies button{
+  background:var(--surface-2); border:1px solid var(--paper-line); color:var(--ink);
+  padding:8px 14px; border-radius:5px; font-size:.88rem;
+}
+#dialogue .replies button:hover{ border-color:var(--green); }
+#dialogue .replies button:disabled{ opacity:.4; cursor:not-allowed; }
+
+#schedule-modal{
+  position:absolute; inset:0; z-index:8; background:rgba(20,29,24,.65);
+  display:flex; align-items:center; justify-content:center; padding:20px;
+}
+#schedule-modal .card{
+  background:var(--surface); border:2px solid var(--green-deep); border-radius:6px;
+  padding:28px clamp(18px,4vw,36px); width:min(480px,100%);
+  box-shadow:0 14px 30px var(--shadow);
+}
+#schedule-modal h2{ color:var(--green); font-size:1.5rem; margin-bottom:4px; }
+#schedule-modal .sub{ color:var(--muted); font-size:.9rem; margin-bottom:18px; }
+.timetable{ list-style:none; margin:0 0 22px; padding:0; display:flex; flex-direction:column; gap:2px; }
+.timetable li{
+  display:flex; justify-content:space-between; align-items:center; gap:10px;
+  padding:10px 4px; border-bottom:1px solid var(--paper-line);
+  font-size:.92rem;
+}
+.timetable li .time{ color:var(--muted); font-size:.82rem; width:52px; flex:none; }
+.timetable li .name{ flex:1; font-weight:700; }
+.timetable li .status{
+  font-family:'Space Mono',monospace; font-size:.68rem; letter-spacing:.05em; text-transform:uppercase;
+  padding:3px 9px; border-radius:999px;
+}
+.timetable li.now .status{ background:var(--mango); color:var(--green-deep); }
+.timetable li.soon .status{ background:var(--surface-2); color:var(--muted); }
+.timetable li.now .name{ color:var(--green); }
+
+[hidden]{ display:none !important; }
+</style>
+
+<div id="stage">
+
+  <!-- ===================== MENU ===================== -->
+  <section id="screen-menu" class="folder">
+    <div class="eyebrow">Simulador de vida escolar</div>
+    <h1>Primeiro Sinal</h1>
+    <p class="tagline">Sua mochila, sua turma, seu primeiro dia de aula.</p>
+    <div class="badge-row">
+      <span class="badge">📍 Casa → Escola</span>
+      <span class="badge">🕒 Rotina por horário</span>
+      <span class="badge">💬 Protótipo v0.1</span>
+    </div>
+    <button class="btn-primary" id="btn-start">Fazer matrícula →</button>
+  </section>
+
+  <!-- ===================== CHARACTER CREATION ===================== -->
+  <section id="screen-char" class="folder" hidden>
+    <span class="tape left"></span><span class="tape right"></span>
+    <div class="eyebrow">Ficha de matrícula · 1 de 2</div>
+    <h2>Quem é você?</h2>
+    <div class="form-grid">
+      <div>
+        <div class="field">
+          <label for="in-name">Nome do(a) aluno(a)</label>
+          <input type="text" id="in-name" maxlength="18" placeholder="Ex: Yasmin">
+        </div>
+        <div class="field">
+          <label>Tom de pele</label>
+          <div class="swatch-row" id="row-skin"></div>
+        </div>
+        <div class="field">
+          <label>Cabelo</label>
+          <div class="swatch-row" id="row-hair"></div>
+        </div>
+        <div class="field">
+          <label>Camiseta</label>
+          <div class="swatch-row" id="row-shirt"></div>
+        </div>
+      </div>
+      <div class="preview-panel">
+        <span class="label">Prévia</span>
+        <canvas id="preview" width="140" height="180"></canvas>
+        <span class="label" id="preview-name">aluno(a)</span>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn-primary" id="btn-to-family">Próximo: família →</button>
+    </div>
+  </section>
+
+  <!-- ===================== FAMILY CREATION ===================== -->
+  <section id="screen-family" class="folder" hidden>
+    <span class="tape left"></span><span class="tape right"></span>
+    <div class="eyebrow">Ficha de matrícula · 2 de 2</div>
+    <h2>Sua família</h2>
+    <div class="field" style="margin-top:20px;">
+      <label for="in-fam1">Responsável 1</label>
+      <input type="text" id="in-fam1" maxlength="18" placeholder="Ex: Marta">
+    </div>
+    <div class="field">
+      <label for="in-fam2">Responsável 2 (opcional)</label>
+      <input type="text" id="in-fam2" maxlength="18" placeholder="Ex: Jorge">
+    </div>
+    <div class="field">
+      <label>Renda familiar</label>
+      <div class="income-cards" id="income-cards">
+        <button type="button" class="income-card" data-income="baixa">
+          <h3>Baixa renda</h3>
+          <p>Casa simples no bairro. A família se vira com pouco, mas com muito carinho.</p>
+        </button>
+        <button type="button" class="income-card" data-income="alta">
+          <h3>Alta renda</h3>
+          <p>Casa confortável, sem muitas faltas materiais em casa.</p>
+        </button>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn-primary" id="btn-start-day">Começar o primeiro dia →</button>
+    </div>
+  </section>
+
+  <!-- ===================== GAME ===================== -->
+  <section id="screen-game" class="folder" hidden>
+    <div id="game-frame">
+      <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+      <canvas id="game" width="960" height="600"></canvas>
+      <div id="hud">
+        <span class="hud-pill" id="hud-phase">🎒 A caminho da escola</span>
+        <span class="hud-pill mono" id="hud-clock">07:10</span>
+        <span class="hud-pill mono" id="hud-money">💰 R$ 0</span>
+        <span class="hud-pill" id="hud-season" title="Ver calendário completo na ficha (Tab)">🌱 2 Fev</span>
+        <span class="hud-pill" id="hud-weather">🍃 Brisa agradável</span>
+        <span class="hud-player"><span class="hud-swatch" id="hud-swatch"></span><span id="hud-name">aluno(a)</span></span>
+      </div>
+      <div id="stat-bars">
+        <button type="button" id="btn-sheet" title="Ver ficha do aluno (Tab)">
+          <span class="stat-row"><span class="stat-icon">❤️</span><span class="stat-track"><span class="stat-fill" id="bar-health"></span></span></span>
+          <span class="stat-row"><span class="stat-icon">⚡</span><span class="stat-track"><span class="stat-fill" id="bar-energy"></span></span></span>
+          <span class="stat-row"><span class="stat-icon">🙂</span><span class="stat-track"><span class="stat-fill" id="bar-mood"></span></span></span>
+        </button>
+      </div>
+      <button type="button" id="btn-npc-editor" title="Editor de NPCs (N)">🧑‍🎨</button>
+      <div id="toast" hidden></div>
+      <div id="caption" hidden><div class="who" id="caption-who">Seu Ivo</div><div id="caption-text"></div></div>
+      <div id="interact-prompt" hidden>Aperte <kbd>E</kbd> para interagir</div>
+      <div id="dialogue" hidden>
+        <div class="who" id="dlg-who">—</div>
+        <p class="line" id="dlg-text">—</p>
+        <div class="replies" id="dlg-replies"></div>
+      </div>
+      <div id="schedule-modal" hidden>
+        <div class="card">
+          <h2>Seu horário de hoje</h2>
+          <div class="sub">Fim do protótipo — o resto do dia vem nas próximas versões.</div>
+          <ul class="timetable mono" id="timetable"></ul>
+          <button class="btn-ghost" id="btn-close-schedule">Fechar</button>
+        </div>
+      </div>
+      <div id="sheet-modal" hidden>
+        <div class="card">
+          <h2>Ficha do aluno</h2>
+          <div class="sub">Aperte <kbd>Tab</kbd> ou <kbd>Esc</kbd> pra fechar.</div>
+          <div class="sheet-section">
+            <div class="sheet-label">Calendário</div>
+            <div class="fac-row"><span id="sheet-date">—</span><span class="v mono" id="sheet-season">—</span></div>
+            <div class="fac-row"><span>Tempo agora</span><span class="v mono" id="sheet-weather">—</span></div>
+          </div>
+          <div class="sheet-section">
+            <div class="sheet-label">Necessidades</div>
+            <div class="sheet-need"><span>❤️ Saúde</span><span class="stat-track big"><span class="stat-fill" id="sheet-health"></span></span><span class="mono sheet-val" id="sheet-health-val">100</span></div>
+            <div class="sheet-need"><span>⚡ Energia</span><span class="stat-track big"><span class="stat-fill" id="sheet-energy"></span></span><span class="mono sheet-val" id="sheet-energy-val">100</span></div>
+            <div class="sheet-need"><span>🙂 Humor</span><span class="stat-track big"><span class="stat-fill" id="sheet-mood"></span></span><span class="mono sheet-val" id="sheet-mood-val">80</span></div>
+            <div class="fac-row"><span>📋 Faltas registradas</span><span class="v mono" id="sheet-faltas">0</span></div>
+          </div>
+          <div class="sheet-section">
+            <div class="sheet-label">Atributos</div>
+            <div class="attr-grid" id="attr-grid"></div>
+            <p class="sheet-note">Inteligência sobe acertando na aula. Carisma sobe arriscando conversas (piadas, paquera, se safar de encrenca) — e é o que decide suas chances nelas. Força/Agilidade entram numa próxima fase.</p>
+          </div>
+          <div class="sheet-section">
+            <div class="sheet-label">Relacionamentos</div>
+            <div id="rel-list"></div>
+          </div>
+          <div class="sheet-section">
+            <div class="sheet-label">Reputação por grupo</div>
+            <div id="faction-list"></div>
+          </div>
+          <button class="btn-ghost" id="btn-close-sheet">Fechar</button>
+        </div>
+      </div>
+      <div id="fight-modal" hidden>
+        <div class="card fight-card">
+          <h2 id="fight-title">Confronto</h2>
+          <div class="fight-bars">
+            <div class="fight-side">
+              <div class="fight-name" id="fight-player-name">Você</div>
+              <div class="stat-track big"><span class="stat-fill" id="fight-player-bar"></span></div>
+            </div>
+            <div class="fight-side">
+              <div class="fight-name" id="fight-npc-name">NPC</div>
+              <div class="stat-track big"><span class="stat-fill" id="fight-npc-bar"></span></div>
+            </div>
+          </div>
+          <p id="fight-log">O confronto começou!</p>
+          <div class="fight-moves" id="fight-moves"></div>
+          <div id="fight-result" hidden>
+            <p id="fight-result-text"></p>
+            <button class="btn-ghost" id="btn-close-fight">Continuar</button>
+          </div>
+        </div>
+      </div>
+      <div id="dayend-modal" hidden>
+        <div class="card">
+          <h2>Fim do Dia 1! 🔔</h2>
+          <div class="sub">Seu primeiro dia de aula acabou. Aqui está o resumo:</div>
+          <div class="sheet-section">
+            <div class="sheet-label">Frequência</div>
+            <div class="fac-row"><span>📋 Faltas</span><span class="v mono" id="de-faltas">0</span></div>
+            <p class="sheet-note" id="de-faltas-note"></p>
+          </div>
+          <div class="sheet-section">
+            <div class="sheet-label">Notas</div>
+            <div class="fac-row"><span>🧠 Acertos nas aulas</span><span class="v mono" id="de-quiz">0/0</span></div>
+            <div class="fac-row"><span>Inteligência final</span><span class="v mono" id="de-int">5.0</span></div>
+          </div>
+          <div class="sheet-section">
+            <div class="sheet-label">Relacionamentos</div>
+            <div id="de-rel"></div>
+          </div>
+          <div class="sheet-section">
+            <div class="sheet-label">Ocorrências</div>
+            <div class="fac-row"><span>🏫 Idas à diretoria</span><span class="v mono" id="de-discipline">0</span></div>
+            <div class="fac-row"><span>👊 Brigas (vitórias/derrotas/fugas)</span><span class="v mono" id="de-fights">0/0/0</span></div>
+          </div>
+          <div class="sheet-section">
+            <div class="sheet-label">Financeiro</div>
+            <div class="fac-row"><span>💰 Dinheiro restante</span><span class="v mono" id="de-money">R$0</span></div>
+          </div>
+          <p class="sheet-note">Isso encerra o protótipo do Dia 1. Dia 2, boletim e o resto do ano letivo entram nas próximas versões!</p>
+          <button class="btn-primary" id="btn-close-dayend">Continuar explorando</button>
+        </div>
+      </div>
+      <div id="npc-editor-modal" hidden>
+        <div class="card">
+          <h2>Editor de NPCs</h2>
+          <div class="sub">Escolha um personagem à esquerda. Aperte <kbd>N</kbd> ou <kbd>Esc</kbd> pra fechar.</div>
+          <div class="npc-editor-body">
+            <div id="npc-editor-list"></div>
+            <div id="npc-editor-form" hidden>
+              <canvas id="npce-preview" width="90" height="130"></canvas>
+              <div class="field">
+                <label for="npce-name">Nome</label>
+                <input type="text" id="npce-name" maxlength="22">
+              </div>
+              <div class="field"><label>Pele</label><div class="swatch-row" id="npce-skin"></div></div>
+              <div class="field"><label>Cabelo</label><div class="swatch-row" id="npce-hair"></div></div>
+              <div class="field"><label>Camiseta</label><div class="swatch-row" id="npce-shirt"></div></div>
+            </div>
+          </div>
+          <button class="btn-ghost" id="btn-close-npc-editor">Fechar</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ============================================================
+   PALETTE (mirrors the CSS tokens, used by canvas drawing)
+   ============================================================ */
+const PAL = {
+  grass:'#8fbf76', grassAlt:'#84b56b', grassTuft:'#5f9a53',
+  pathA:'#cdb98b', pathB:'#c3ac7c', pathPebble:'#a6926a',
+  hallA:'#9db8ab', hallB:'#93ab9d', hallGrout:'#7d968b',
+  classroom:'#d8b978', classroomAlt:'#cead6d', classroomGrout:'#b89757',
+  doorway:'#e6d8b3',
+  gate:'#c9b98f',
+  homeLow:'#c2996a', homeHigh:'#e2d0a6', homePlank:'#a97e4f',
+  house1:'#c9a15a', house1Alt:'#bd9650',
+  house2:'#c97b6a', house2Alt:'#bd6f5f',
+  house3:'#6fa39a', house3Alt:'#679890',
+  patio:'#c9c2a8', patioAlt:'#bfb89e',
+  quadra:'#c07a4a', quadraAlt:'#b66f40', quadraLine:'#ece6d6',
+  cantina:'#e0b36a', cantinaAlt:'#d4a55c',
+  banheiro:'#8fb8c9', banheiroAlt:'#84acbc',
+  kiosk:'#d9b877', kioskAlt:'#cdac6a',
+  schoolRoof:'#8a4a3a',
+  wallTop:'#8a7b5c', wallLeft:'#5f5340', wallRight:'#75684d',
+  fountainBasin:'#5aa7c9', fountainWater:'#bfe6f2',
+  locker:'#8f97a3', lockerDoor:'#6c7480',
+  bed:'#b8492c', bedSheet:'#ece6d6', bedStripe:'#d8a04f',
+  tv:'#2b3238', tvGlow:'#6fb8dc', sofa:'#3f7a63', tree:'#3f7a4f', treeLight:'#5b9c5e', trunk:'#6b4a2c',
+  uniformPants:'#2c3a46', uniformShoe:'#1c2429',
+  counterTop:'#e8d9b0', sink:'#dfeaf0', hoopRing:'#e0592c', hoopBoard:'#f3ecd8',
+  shadow:'rgba(20,30,20,.35)'
+};
+
+/* tiny color helpers for cheap pixel-art shading */
+function hexToRgb(hex){
+  const v = hex.replace('#','');
+  const n = v.length===3 ? v.split('').map(ch=>ch+ch).join('') : v;
+  return { r: parseInt(n.slice(0,2),16), g: parseInt(n.slice(2,4),16), b: parseInt(n.slice(4,6),16) };
+}
+function shade(hex, amt){
+  const {r,g,b} = hexToRgb(hex);
+  const f = c => Math.max(0, Math.min(255, Math.round(c + amt)));
+  return 'rgb('+f(r)+','+f(g)+','+f(b)+')';
+}
+function lighten(hex, amt){ return shade(hex, Math.abs(amt)); }
+function darken(hex, amt){ return shade(hex, -Math.abs(amt)); }
+/* deterministic pseudo-random noise, stable per tile so texture doesn't flicker each frame */
+function noise2(x,y,salt){
+  const v = Math.sin(x*127.1 + y*311.7 + salt*74.7) * 43758.5453;
+  return v - Math.floor(v);
+}
+
+/* ============================================================
+   MAP
+   ============================================================ */
+const COLS = 30, ROWS = 45, TILE_W = 64, TILE_H = 32;
+const WALL_HEIGHT = 74; // tall enough that a wall reads as an actual wall next to a ~90px-tall sprite
+let grid = [];
+function fillGrid(ch){ grid = []; for (let r=0;r<ROWS;r++){ grid.push(new Array(COLS).fill(ch)); } }
+function room(x0,y0,x1,y1,ch){ for(let y=y0;y<=y1;y++) for(let x=x0;x<=x1;x++) grid[y][x]=ch; }
+
+/* One house per named student, side by side along the same street as the player's house.
+   Each has its own floor tint (see tileColor) and a nameplate sign above the door —
+   interiors are walkable today, full room content comes in a later pass. */
+const NEIGHBOR_HOUSES = [
+  { name:'Casa do Bruno',   floorCh:'1', x0:1,  x1:5,  doorCol:[3,4] },
+  { name:'Sua casa',        floorCh:'h', x0:8,  x1:12, doorCol:[10,11] },
+  { name:'Casa da Larissa', floorCh:'2', x0:15, x1:19, doorCol:[17,18] },
+  { name:'Casa do Diego',   floorCh:'3', x0:22, x1:26, doorCol:[24,25] },
+];
+
+function buildMap(renda){
+  fillGrid('#');
+
+  // ---- neighborhood: houses + sidewalk + a long street down to school ----
+  NEIGHBOR_HOUSES.forEach(house=>{
+    room(house.x0, 1, house.x1, 5, house.floorCh);
+    room(house.doorCol[0], 6, house.doorCol[1], 6, 'D');
+  });
+  room(0,7,29,7,'p');                 // sidewalk connecting every house
+  room(0,8,29,27,'.');                // open street/yard — long enough to actually feel like a walk
+  room(10,8,11,27,'p');               // paved path from the player's house down to the gate
+  grid[16][4]='k'; grid[16][5]='k'; grid[17][4]='k'; grid[17][5]='k'; // quiosque, a little landmark along the way
+
+  // ---- school grounds ----
+  room(8,28,13,28,'G');               // gated entrance
+  room(8,29,21,32,'y');               // pátio (paved schoolyard)
+  room(8,29,14,30,'q');               // quadra — tinted half of the pátio
+  room(2,29,7,32,'n');                // cantina, opening onto the pátio
+  room(22,29,27,32,'b');              // banheiro, opening onto the pátio on the other side
+  room(3,33,26,35,'f');               // entrance hall — wide, flanks the cantina/banheiro too
+  room(10,36,11,41,'f');              // corridor
+  grid[37][9]='W';                    // bebedouro niche
+  grid[37][12]='K';                   // armário niche
+  grid[39][9]='K';                    // armário niche
+  grid[39][12]='K';                   // armário niche
+  room(4,42,23,44,'c');               // classroom
+}
+
+/* Every fully-enclosed structure gets a flat roof plane (see drawRoof) that hides
+   itself the moment the player is standing inside its footprint — a cheap version
+   of the classic Sims cutaway, so the character is never obscured indoors. */
+function buildBuildings(renda){
+  return [
+    { name:'Casa do Bruno',   x0:1,  y0:1, x1:5,  y1:5, roofColor: darken(PAL.house1,18) },
+    { name:'Sua casa',        x0:8,  y0:1, x1:12, y1:5, roofColor: darken(renda==='alta'?PAL.homeHigh:PAL.homeLow,18) },
+    { name:'Casa da Larissa', x0:15, y0:1, x1:19, y1:5, roofColor: darken(PAL.house2,18) },
+    { name:'Casa do Diego',   x0:22, y0:1, x1:26, y1:5, roofColor: darken(PAL.house3,18) },
+    { name:'Escola',          x0:2,  y0:33,x1:27, y1:44, roofColor: PAL.schoolRoof },
+  ];
+}
+
+function buildProps(renda){
+  const props = [
+    // ---- casa do Bruno: cantinho de estudo ----
+    {col:2,   row:2,   type:'bed'},
+    {col:5,   row:1.6, type:'bookshelf'},
+    {col:2,   row:4,   type:'homeDesk'},
+    {col:2,   row:3.5, type:'deskLamp'},
+    {col:3,   row:2.7, type:'rug', text:RUG_COLORS.bruno},
+
+    // ---- sua casa: sala + cozinha ----
+    {col:9.2, row:2.2, type:'bed'},
+    {col:12,  row:1.6, type:'fridge'},
+    {col:12,  row:2.6, type:'stove'},
+    {col:10,  row:3.1, type:'rug', text:RUG_COLORS.player},
+
+    // ---- casa da Larissa: quarto arrumadinho ----
+    {col:16,  row:2,   type:'bed'},
+    {col:19,  row:1.8, type:'mirror'},
+    {col:19,  row:3.3, type:'wardrobe'},
+    {col:17,  row:4,   type:'tv'},
+    {col:17,  row:2.7, type:'rug', text:RUG_COLORS.larissa},
+
+    // ---- casa do Diego: cheia de bola ----
+    {col:23,  row:2,   type:'bed'},
+    {col:26,  row:1.8, type:'ballRack'},
+    {col:25,  row:3.3, type:'tv'},
+    {col:24,  row:2.7, type:'rug', text:RUG_COLORS.diego},
+
+    // ---- bairro: iluminação, caixas de correio, bancos e lixeiras ----
+    {col:0.5,  row:7, type:'lamppost'}, {col:6.5,  row:7, type:'lamppost'}, {col:13.5, row:7, type:'lamppost'},
+    {col:20.5, row:7, type:'lamppost'}, {col:28.5, row:7, type:'lamppost'},
+    {col:2.5,  row:6.7, type:'mailbox'}, {col:9.5,  row:6.7, type:'mailbox'},
+    {col:16.5, row:6.7, type:'mailbox'}, {col:23.5, row:6.7, type:'mailbox'},
+    {col:5,  row:18, type:'bench'}, {col:24, row:18, type:'bench'},
+    {col:3,  row:17, type:'trashcan'},
+
+    {col:2,   row:14,  type:'tree'},
+    {col:27,  row:16,  type:'tree'},
+    {col:16,  row:22,  type:'tree'},
+    {col:4.5, row:16.5, type:'kioskStand'},
+    {col:4.5, row:15.6, type:'sign', text:'Quiosque'},
+
+    // ---- escola: pátio ----
+    {col:11.5, row:29.7, type:'hoop'},
+    {col:4.5, row:30.5, type:'counter'},
+    {col:4.5, row:29.6, type:'sign', text:'Cantina'},
+    {col:24.5, row:30.5, type:'sink'},
+    {col:24.5, row:29.6, type:'sign', text:'Banheiro'},
+    {col:9,   row:29.4, type:'flagpole'},
+    {col:20,  row:31.5, type:'bench'},
+    {col:12,  row:31.7, type:'trashcan'},
+
+    // ---- escola: sala de aula ----
+    {col:12, row:42.2, type:'blackboard'},
+    {col:9,  row:42.1, type:'wallclock'},
+    {col:4.3, row:42.6, type:'window'},
+    {col:22.7, row:42.6, type:'window'},
+    {col:22, row:44, type:'plant'},
+    // carteiras dos alunos, duas fileiras — puramente decorativas, ficam perto de onde a IA de rotina os leva
+    {col:7,  row:43.3, type:'desk'}, {col:11, row:43.3, type:'desk'}, {col:16, row:43.3, type:'desk'}, {col:20, row:43.3, type:'desk'},
+    {col:7,  row:44.3, type:'desk'}, {col:11, row:44.3, type:'desk'}, {col:16, row:44.3, type:'desk'}, {col:20, row:44.3, type:'desk'},
+  ];
+  if (renda === 'alta'){
+    props.push({col:11.4, row:1.6, type:'tv'});
+    props.push({col:10.4, row:2.6, type:'sofa'});
+  } else {
+    props.push({col:11, row:2, type:'sofa'});
+  }
+  // nameplate sign above every house's door, including the player's own
+  NEIGHBOR_HOUSES.forEach(house=>{
+    const midCol = (house.doorCol[0]+house.doorCol[1])/2;
+    props.push({col:midCol, row:6, type:'sign', text: house.name});
+  });
+  return props;
+}
+
+function isWalkable(col,row){
+  const c = Math.round(col), r = Math.round(row);
+  if (c<0||c>=COLS||r<0||r>=ROWS) return false;
+  return grid[r][c] !== '#';
+}
+function tileAt(col,row){
+  const c = Math.round(col), r = Math.round(row);
+  if (c<0||c>=COLS||r<0||r>=ROWS) return '#';
+  return grid[r][c];
+}
+function isInsideBuilding(b){
+  const c = Math.round(player.col), r = Math.round(player.row);
+  return c>=b.x0 && c<=b.x1 && r>=b.y0 && r<=b.y1;
+}
+
+/* ============================================================
+   STATE
+   ============================================================ */
+const player = {
+  name:'', skin:'#e0a878', hair:'#2b2018', shirt:'#1f6f5c',
+  renda:'baixa', fam1:'', fam2:'',
+  col:10, row:2.5, facing:'down', moving:false,
+  stats:{ health:100, energy:100, mood:80 },
+  attrs:{ forca:5, agilidade:5, inteligencia:5, resistencia:5, carisma:5 },
+  money:0, faltas:0, hat:null
+};
+let fainted = false;
+const ATTR_LABELS = { forca:'💪 Força', agilidade:'🏃 Agilidade', inteligencia:'🧠 Inteligência', resistencia:'🛡️ Resistência', carisma:'🗣️ Carisma' };
+/* carisma tips every persuasion-flavored roll in the game: 5 is the neutral baseline,
+   0 skews heavily toward failure, 10 skews heavily toward success. */
+function charismaChance(base, spread){
+  const c = player.attrs.carisma;
+  return Math.max(0.05, Math.min(0.95, base + ((c-5)/5)*spread));
+}
+function growCarisma(amount){ player.attrs.carisma = Math.min(10, player.attrs.carisma + amount); }
+
+let gamePhase = 'YARD';      // YARD -> TOUR -> CLASSROOM_DONE
+let tourStarted = false;
+let dialogueOpen = false;
+let scheduleShown = false;
+let interactables = [];      // {type:'fountain'|'locker', col,row, num}
+let lockerCounter = 12;
+
+const KEYS = {};
+let canvas, ctx;
+
+/* ---- NPCs ---- */
+const WAYPOINTS = [
+  {col:10.5, row:33},
+  {col:10.5, row:34.6},
+  {col:10.5, row:37.5},
+  {col:10.5, row:40.5},
+  {col:10.5, row:43},
+];
+/* ---- school clock: runs continuously and drives which period the HUD reports ---- */
+const SCHEDULE = [
+  { startMin: 7*60+10, name:'Antes da aula', icon:'🎒' },
+  { startMin: 7*60+30, name:'Entrada',        icon:'🚪' },
+  { startMin: 7*60+40, name:'1ª Aula',        icon:'📚', subject:'Matemática' },
+  { startMin: 9*60+10, name:'Recreio',        icon:'🍎' },
+  { startMin: 9*60+30, name:'2ª Aula',        icon:'📚', subject:'História' },
+  { startMin:11*60+ 0, name:'Apresentação escolar', icon:'🎭' },
+  { startMin:11*60+40, name:'Saída',          icon:'🎒' },
+];
+
+/* ---- functional classes: a small quiz pool per subject, tied to the clock above ---- */
+const QUIZZES = {
+  'Matemática': [
+    { q:'Quanto é 7 × 8?', opts:['54','56','64'], correct:1 },
+    { q:'Qual é a raiz quadrada de 81?', opts:['8','9','11'], correct:1 },
+    { q:'Quanto é 15% de 200?', opts:['20','30','45'], correct:1 },
+    { q:'Quanto é 9 × 9?', opts:['72','81','91'], correct:1 },
+  ],
+  'História': [
+    { q:'Quem proclamou a independência do Brasil?', opts:['Dom Pedro I','Tiradentes','Getúlio Vargas'], correct:0 },
+    { q:'Em que ano foi proclamada a República no Brasil?', opts:['1822','1889','1900'], correct:1 },
+    { q:'Em que século o Brasil foi colonizado por Portugal?', opts:['XIV','XVI','XVIII'], correct:1 },
+  ],
+};
+/* ============================================================
+   DAY/NIGHT CYCLE — a color wash derived straight from the clock,
+   so it keeps working even after "Saída" if you just keep exploring.
+   ============================================================ */
+const DAY_STOPS = [
+  { t:0,    r:10,  g:15,  b:35,  a:.55, icon:'🌙' },
+  { t:300,  r:10,  g:15,  b:35,  a:.45, icon:'🌙' },
+  { t:360,  r:255, g:140, b:80,  a:.30, icon:'🌅' },
+  { t:450,  r:255, g:190, b:130, a:.08, icon:'🌅' },
+  { t:480,  r:255, g:255, b:255, a:0,   icon:'☀️' },
+  { t:1020, r:255, g:255, b:255, a:0,   icon:'☀️' },
+  { t:1080, r:255, g:140, b:80,  a:.24, icon:'🌇' },
+  { t:1140, r:90,  g:65,  b:130, a:.38, icon:'🌆' },
+  { t:1200, r:10,  g:15,  b:35,  a:.52, icon:'🌙' },
+  { t:1440, r:10,  g:15,  b:35,  a:.55, icon:'🌙' },
+];
+function timeOfDay(clockMinutes){
+  const t = ((clockMinutes % 1440) + 1440) % 1440;
+  let a = DAY_STOPS[0], b = DAY_STOPS[DAY_STOPS.length-1];
+  for (let i=0;i<DAY_STOPS.length-1;i++){
+    if (t >= DAY_STOPS[i].t && t <= DAY_STOPS[i+1].t){ a = DAY_STOPS[i]; b = DAY_STOPS[i+1]; break; }
+  }
+  const span = (b.t - a.t) || 1;
+  const f = (t - a.t) / span;
+  const lerp = (x,y)=> x + (y-x)*f;
+  return {
+    r: lerp(a.r,b.r), g: lerp(a.g,b.g), b: lerp(a.b,b.b), a: lerp(a.a,b.a),
+    icon: f < 0.5 ? a.icon : b.icon,
+    isNight: t < 360 || t > 1140,
+  };
+}
+
+/* ============================================================
+   LIVING CALENDAR — real months, real weekdays, real (Southern
+   Hemisphere) seasons, all driven by an actual day counter instead
+   of a fake timer. A calendar day advances every few real seconds so
+   you can watch months and seasons turn over in one sitting; once
+   there's real multi-day content, just slow this down to match.
+   ============================================================ */
+const MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const MONTHS_SHORT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+const WEEKDAYS = ['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'];
+function isLeapYear(y){ return (y%4===0 && y%100!==0) || y%400===0; }
+function daysInMonth(monthIndex, year){
+  if (monthIndex===1) return isLeapYear(year) ? 29 : 28;
+  return [31,29,31,30,31,30,31,31,30,31,30,31][monthIndex];
+}
+/* Brazil sits in the Southern Hemisphere — summer starts in December, not June */
+function seasonForMonth(monthIndex){
+  if (monthIndex===11 || monthIndex===0 || monthIndex===1) return 'Verão';
+  if (monthIndex>=2 && monthIndex<=4) return 'Outono';
+  if (monthIndex>=5 && monthIndex<=7) return 'Inverno';
+  return 'Primavera';
+}
+const SEASON_DATA = {
+  Primavera: { name:'Primavera', icon:'🌱', grass:'#8fd17a', grassAlt:'#82c46e', tree:'#4f9e57', treeLight:'#7fc76a', particle:'petal', particleColor:'#f6c9de' },
+  Verão:     { name:'Verão',     icon:'☀️', grass:'#8fbf76', grassAlt:'#84b56b', tree:'#3f7a4f', treeLight:'#5b9c5e', particle:'none',  particleColor:'#ffffff' },
+  Outono:    { name:'Outono',    icon:'🍂', grass:'#c2a35a', grassAlt:'#b6974f', tree:'#b8672f', treeLight:'#d98a3e', particle:'leaf',  particleColor:'#c9722f' },
+  Inverno:   { name:'Inverno',   icon:'❄️', grass:'#e4e8ea', grassAlt:'#d7dcdf', tree:'#4a6b5a', treeLight:'#6a8a76', particle:'snow',  particleColor:'#ffffff' },
+};
+function currentSeason(){
+  return SEASON_DATA[seasonForMonth(calendar.month)];
+}
+
+const SECONDS_PER_CALENDAR_DAY = 6; // a whole calendar day every 6 real seconds — fast enough to see months turn
+let calendar = { day:2, month:1, year:2026, weekdayIndex:1 }; // segunda-feira, 2 de fevereiro — a plausible first day of aula
+let calendarAccum = 0;
+function advanceCalendar(dt){
+  calendarAccum += dt;
+  while (calendarAccum >= SECONDS_PER_CALENDAR_DAY){
+    calendarAccum -= SECONDS_PER_CALENDAR_DAY;
+    calendar.day++;
+    calendar.weekdayIndex = (calendar.weekdayIndex+1) % 7;
+    if (calendar.day > daysInMonth(calendar.month, calendar.year)){
+      calendar.day = 1;
+      calendar.month++;
+      if (calendar.month > 11){ calendar.month = 0; calendar.year++; }
+    }
+  }
+}
+function formatDateShort(){ return calendar.day+' '+MONTHS_SHORT[calendar.month]; }
+function formatDateFull(){ return WEEKDAYS[calendar.weekdayIndex]+', '+calendar.day+' de '+MONTHS[calendar.month]+' de '+calendar.year; }
+
+/* ============================================================
+   WEATHER — each season rolls its own conditions, and each condition
+   is a real (small) gameplay debuff, not just decoration: heat and
+   cold drain Energia (cold bites less if you bought a boné), rain
+   dampens Humor, hail chips at Saúde. Effects only apply outdoors.
+   ============================================================ */
+const OUTDOOR_TILES = new Set(['.', 'p', 'G', 'y', 'q']);
+function isOutdoors(){ return OUTDOOR_TILES.has(tileAt(player.col, player.row)); }
+
+const WEATHER_DEFS = {
+  brisa:   { label:'Brisa agradável', icon:'🍃', effect(dt,out){ if(out) player.stats.mood = clamp01to100(player.stats.mood + 0.05*dt); } },
+  calor:   { label:'Calor',           icon:'🥵', effect(dt,out){ if(out) player.stats.energy = clamp01to100(player.stats.energy - 0.15*dt); } },
+  vento:   { label:'Vento forte',     icon:'💨', windy:true, effect(dt,out){ if(out) player.stats.energy = clamp01to100(player.stats.energy - 0.1*dt); } },
+  frio:    { label:'Frio',            icon:'🥶', effect(dt,out){ if(out){ const p = player.hat?0.5:1; player.stats.energy=clamp01to100(player.stats.energy-0.15*dt*p); player.stats.health=clamp01to100(player.stats.health-0.05*dt*p);} } },
+  chuva:   { label:'Chuva',           icon:'🌧️', particle:'rain', tint:{r:70,g:80,b:100,a:.16}, effect(dt,out){ if(out) player.stats.mood = clamp01to100(player.stats.mood - 0.1*dt); } },
+  granizo: { label:'Granizo',         icon:'🧊', particle:'hail', tint:{r:90,g:95,b:105,a:.2},  effect(dt,out){ if(out) player.stats.health = clamp01to100(player.stats.health - 0.3*dt); } },
+};
+const SEASON_WEATHER = {
+  Primavera: [{id:'brisa',w:70},{id:'chuva',w:30}],
+  Verão:     [{id:'calor',w:75},{id:'chuva',w:25}],
+  Outono:    [{id:'vento',w:70},{id:'chuva',w:30}],
+  Inverno:   [{id:'frio',w:60},{id:'chuva',w:25},{id:'granizo',w:15}],
+};
+let weather = { id:'brisa', timer:15 };
+function pickWeather(){
+  const pool = SEASON_WEATHER[currentSeason().name];
+  const total = pool.reduce((s,w)=>s+w.w,0);
+  let r = Math.random()*total;
+  for (const w of pool){ if (r < w.w) return w.id; r -= w.w; }
+  return pool[0].id;
+}
+function updateWeather(dt){
+  weather.timer -= dt;
+  if (weather.timer <= 0){
+    const next = pickWeather();
+    if (next !== weather.id){
+      const def = WEATHER_DEFS[next];
+      showToast(def.icon+' Tempo mudando: '+def.label, 3000);
+    }
+    weather.id = next;
+    weather.timer = 20 + Math.random()*20;
+  }
+  WEATHER_DEFS[weather.id].effect(dt, isOutdoors());
+}
+function effectiveParticle(){
+  const w = WEATHER_DEFS[weather.id];
+  if (w.particle) return { type:w.particle, color: w.particle==='rain' ? '#9fc6e0' : '#e8f0f5', speedMult: w.particle==='hail'?2.4:2.0 };
+  const s = currentSeason();
+  return { type:s.particle, color:s.particleColor, speedMult:1 };
+}
+
+/* lightweight screen-space weather particles (snow/leaves/petals/rain/hail) */
+const PARTICLE_COUNT = 34;
+const particles = Array.from({length:PARTICLE_COUNT}, ()=>({
+  x:Math.random(), y:Math.random(), speed:0.15+Math.random()*0.25, drift:(Math.random()-0.5)*0.3, size:2+Math.random()*2.5,
+}));
+function updateParticles(dt){
+  const p2 = effectiveParticle();
+  if (p2.type === 'none') return;
+  const windMult = WEATHER_DEFS[weather.id].windy ? 2.2 : 1;
+  particles.forEach(p=>{
+    p.y += p.speed*dt*0.12*p2.speedMult;
+    p.x += p.drift*dt*0.05*windMult;
+    if (p.y > 1){ p.y = -0.05; p.x = Math.random(); }
+    if (p.x > 1) p.x = 0; if (p.x < 0) p.x = 1;
+  });
+}
+function renderParticles(){
+  const p2 = effectiveParticle();
+  if (p2.type === 'none') return;
+  ctx.save();
+  ctx.fillStyle = p2.color;
+  ctx.globalAlpha = p2.type==='rain' ? 0.5 : 0.75;
+  particles.forEach(p=>{
+    const px = p.x*canvas.width, py = p.y*canvas.height;
+    if (p2.type === 'snow' || p2.type === 'hail'){
+      ctx.beginPath(); ctx.arc(px,py,p.size*(p2.type==='hail'?0.8:0.6),0,Math.PI*2); ctx.fill();
+    } else if (p2.type === 'rain'){
+      ctx.strokeStyle = p2.color; ctx.lineWidth = 1.4;
+      ctx.beginPath(); ctx.moveTo(px,py); ctx.lineTo(px-2, py+10); ctx.stroke();
+    } else { // leaf or petal — a tiny tilted oval
+      ctx.save(); ctx.translate(px,py); ctx.rotate(p.y*8);
+      ctx.beginPath(); ctx.ellipse(0,0,p.size,p.size*0.6,0,0,Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
+  });
+  ctx.restore();
+}
+
+const GRACE_MINUTES = 5; // arrive up to this many minutes late with zero consequence
+function isInClassroomNow(){
+  const c = Math.round(player.col), r = Math.round(player.row);
+  return c>=4 && c<=23 && r>=42 && r<=44; // matches the classroom room() carve in buildMap
+}
+function onSchoolGrounds(){ return Math.round(player.row) >= 28; } // gate row onward counts as campus
+
+let disciplineLock = false;
+let catchTimer = 0;
+const tardyState = { notifiedStart:null, notifiedGrace:null, caughtFor:null };
+
+let pendingFightCatch = false; // setado por endFight(), consumido e limpo por closeFight()
+const FIGHT_CATCH_ODDS = { sala:0.75, campus:0.5, recreio:0.18 };
+// sala    = período de aula rolando E jogador dentro da área da sala (isInClassroomNow())
+// campus  = período de aula rolando, mas jogador fora da sala (corredor/pátio durante horário de aula)
+// recreio = sem período de aula ativo (recreio/entrada/saída) — criança brigando no recreio é "normal"
+// nocaute soma +0.15 a qualquer uma dessas (jogador cai desacordado no local, difícil não notar)
+
+/* running tallies used only by the end-of-day report */
+const dayStats = { quizCorrect:0, quizTotal:0, disciplineCount:0, fightWins:0, fightLosses:0, fightFlees:0 };
+let dayEndShown = false;
+
+/* ---- cabular aula: skipping outright (leaving campus) dodges the hallway risk above,
+   but every unresolved class period becomes a permanent "falta" on the record ---- */
+let attendanceTracker = { periodStart:null, hadSubject:false, subject:null, attended:false, caught:false };
+
+function checkAttendance(){
+  if (!useClockPill) return;
+  const now = currentPeriod(gameClockMinutes);
+  if (attendanceTracker.periodStart !== now.startMin){
+    if (attendanceTracker.periodStart !== null && attendanceTracker.hadSubject && !attendanceTracker.attended && !attendanceTracker.caught){
+      registerFalta(attendanceTracker.subject);
+    }
+    attendanceTracker = { periodStart:now.startMin, hadSubject:!!now.subject, subject:now.subject, attended:false, caught:false };
+  }
+  if (now.subject && isInClassroomNow()) attendanceTracker.attended = true;
+  if (tardyState.caughtFor === now.startMin) attendanceTracker.caught = true;
+}
+
+function checkDayEnd(){
+  if (dayEndShown || !useClockPill) return;
+  if (currentPeriod(gameClockMinutes).name === 'Saída'){
+    dayEndShown = true;
+    setTimeout(openDayEnd, 900);
+  }
+}
+
+function registerFalta(subject){
+  player.faltas++;
+  showToast('Você matou a aula de '+subject+'! Falta registrada (total: '+player.faltas+').', 3800);
+  if (player.faltas === 2 && !disciplineLock && !dialogueOpen){
+    setTimeout(()=>{
+      if (disciplineLock || dialogueOpen) return; // estado pode ter mudado durante o delay
+      sendToPrincipal('A coordenação percebeu que você sumiu de duas aulas hoje. Vamos conversar.');
+    }, 1300);
+  }
+}
+
+/* ---- sino da escola: toca (som sintetizado, sem arquivo de áudio) sempre que uma aula começa ---- */
+let audioCtx = null;
+function playBell(){
+  try{
+    if (!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    const now = audioCtx.currentTime;
+    [0, 0.32].forEach((delay,i)=>{
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = i===0 ? 880 : 660;
+      gain.gain.setValueAtTime(0.0001, now+delay);
+      gain.gain.exponentialRampToValueAtTime(0.22, now+delay+0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now+delay+0.9);
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.start(now+delay); osc.stop(now+delay+0.95);
+    });
+  } catch(e){ /* navegador sem suporte a áudio — sem problema, o jogo continua mudo */ }
+}
+let lastBellPeriodStart = null;
+function checkBell(){
+  if (!useClockPill) return;
+  const period = currentPeriod(gameClockMinutes);
+  if (period.subject && lastBellPeriodStart !== period.startMin){
+    lastBellPeriodStart = period.startMin;
+    playBell();
+    showCaption('Sinal', '🔔 Bateu o sinal! Hora da aula de '+period.subject+'.');
+  }
+}
+
+function handleTardiness(dt){
+  if (!useClockPill || disciplineLock || dialogueOpen) return;
+  const now = currentPeriod(gameClockMinutes);
+  if (!now.subject || isInClassroomNow()) return; // recess/free period, or already where you should be
+
+  const minutesLate = gameClockMinutes - now.startMin;
+  if (minutesLate <= GRACE_MINUTES){
+    if (tardyState.notifiedStart !== now.startMin){
+      tardyState.notifiedStart = now.startMin;
+      showToast('A aula de '+now.subject+' começou! Chegue até '+formatClock(now.startMin+GRACE_MINUTES)+' sem problema.', 4200);
+    }
+    return;
+  }
+
+  if (tardyState.notifiedGrace !== now.startMin){
+    tardyState.notifiedGrace = now.startMin;
+    showToast('Você está muito atrasado(a) pra '+now.subject+'! Corre pra sala antes que te peguem.', 4200);
+  }
+  if (!onSchoolGrounds() || tardyState.caughtFor === now.startMin) return;
+
+  catchTimer += dt;
+  if (catchTimer >= 3){
+    catchTimer = 0;
+    if (Math.random() < 0.35){
+      tardyState.caughtFor = now.startMin;
+      triggerCaught(now);
+    }
+  }
+}
+
+function randomCatcher(){
+  const catchers = [tutor.name, professor.name, 'O segurança da escola'];
+  return catchers[Math.floor(Math.random()*catchers.length)];
+}
+
+function triggerCaught(period){
+  disciplineLock = true;
+  const catcher = randomCatcher();
+  showCaption(catcher, 'Ei! Por que você não está na aula de '+period.subject+'? Vem cá...');
+  setTimeout(()=> openCaughtChoice(catcher), 1800);
+}
+
+function openCaughtChoice(catcher, opts){
+  opts = opts || {};
+  const promptText   = opts.promptText   || 'Você foi flagrado(a) fora da sala durante o horário de aula. O que você faz?';
+  const chanceBase    = (opts.chance != null) ? opts.chance : 0.5;
+  const chanceSpread  = (opts.chanceSpread != null) ? opts.chanceSpread : 0.4;
+  const talkLabel     = opts.talkLabel   || 'Dizer que está indo pra aula';
+  const successLine   = opts.successLine || (catcher+' acredita em você... dessa vez. Corre pra sala!');
+  const failLine      = opts.failLine    || (catcher+' não caiu nessa. "Vamos até a diretoria."');
+  const principalReason = opts.principalReason; // undefined => sendToPrincipal usa seu próprio default
+  const principalMood   = opts.principalMood;   // undefined => sendToPrincipal usa seu próprio default (12)
+
+  dialogueOpen = true;
+  document.getElementById('dlg-who').textContent = catcher;
+  document.getElementById('dlg-text').textContent = promptText;
+  const replies = document.getElementById('dlg-replies');
+  replies.innerHTML = '';
+  const chance = charismaChance(chanceBase, chanceSpread);
+  const tryTalk = document.createElement('button');
+  tryTalk.textContent = talkLabel+' ('+Math.round(chance*100)+'% de chance)';
+  tryTalk.addEventListener('click', ()=>{
+    closeDialogue();
+    // odds come from carisma: baixo carisma falha quase sempre, alto carisma convence quase sempre
+    if (Math.random() < chance){
+      showToast(successLine, 3400);
+      growCarisma(0.5);
+      disciplineLock = false;
+    } else {
+      showToast(failLine, 3400);
+      sendToPrincipal(principalReason, principalMood);
+    }
+  });
+  const goPrincipal = document.createElement('button');
+  goPrincipal.textContent = 'Ir direto pra diretoria';
+  goPrincipal.addEventListener('click', ()=>{ closeDialogue(); sendToPrincipal(principalReason, principalMood); });
+  replies.appendChild(tryTalk); replies.appendChild(goPrincipal);
+  document.getElementById('dialogue').hidden = false;
+}
+
+function sendToPrincipal(reason, moodPenalty){
+  reason = reason || 'Você recebeu uma advertência por atraso na aula.';
+  moodPenalty = (moodPenalty != null) ? moodPenalty : 12;
+  disciplineLock = true;
+  dayStats.disciplineCount++;
+  showCaption('Diretoria', reason);
+  player.stats.mood = clamp01to100(player.stats.mood - moodPenalty);
+  gameClockMinutes += 10;
+  setTimeout(()=>{
+    player.col = 12; player.row = 43.6; // sent back into the classroom once the talking-to is over
+    disciplineLock = false;
+  }, 1800);
+}
+
+function rollFightCatch(outcome){
+  if (!onSchoolGrounds()) return false; // brigar em casa/bairro não tem ninguém da escola pra flagrar
+  const period = currentPeriod(gameClockMinutes);
+  let chance;
+  if (period.subject && isInClassroomNow()) chance = FIGHT_CATCH_ODDS.sala;
+  else if (period.subject) chance = FIGHT_CATCH_ODDS.campus;
+  else chance = FIGHT_CATCH_ODDS.recreio;
+  if (outcome === 'nocaute') chance += 0.15;
+  return Math.random() < Math.min(0.9, chance);
+}
+
+function triggerFightCatch(){
+  disciplineLock = true;
+  const catcher = randomCatcher();
+  showCaption(catcher, 'Chega! Brigar na escola? Vem comigo agora mesmo.');
+  setTimeout(()=> openCaughtChoice(catcher, {
+    promptText: 'Você foi flagrado(a) brigando. O que você faz?',
+    chance: 0.35, chanceSpread: 0.3,
+    talkLabel: 'Jurar que foi só brincadeira',
+    successLine: catcher+' meio que desconfia, mas deixa passar dessa vez. Vai andando!',
+    failLine: catcher+' não tá pra brincadeira: "Isso não é brincadeira. Diretoria, agora."',
+    principalReason: 'Você recebeu uma advertência por brigar na escola.',
+    principalMood: 16
+  }), 1800);
+}
+
+function makePool(items){
+  let queue = [];
+  return function(){
+    if (queue.length===0) queue = shuffledIndices(items.length);
+    return items[queue.pop()];
+  };
+}
+const MINUTES_PER_SECOND = 1/7; // 1 game-minute every 7 real seconds, so being "5 minutes late" actually means something
+let gameClockMinutes = SCHEDULE[0].startMin;
+let useClockPill = false;
+
+function formatClock(totalMinutes){
+  const h = Math.floor(totalMinutes/60) % 24, m = Math.floor(totalMinutes%60);
+  return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');
+}
+function currentPeriod(minutes){
+  let cur = SCHEDULE[0];
+  for (const p of SCHEDULE){ if (minutes >= p.startMin) cur = p; }
+  return cur;
+}
+
+const TUTOR_CAPTIONS = [
+  "Bem-vindo(a)! Eu sou o Seu Ivo, coordenador daqui. Esse é o saguão principal — todo mundo passa por aqui de manhã.",
+  "Aqui começa o corredor principal. Fiquem à vontade pra beber água ou dar uma olhada nos armários.",
+  "Reparem nos armários numerados — cada um de vocês vai ter o seu.",
+  "Mais adiante ficam as salas especiais, como música e educação física. A gente conhece com calma outro dia.",
+  "E chegamos: essa aqui é a sua sala! Bom primeiro dia de aula. 🎒"
+];
+
+function shuffledIndices(n){
+  const a = Array.from({length:n}, (_,i)=>i);
+  for (let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+function makeLinePicker(lines){
+  let queue = [];
+  return function(){
+    if (queue.length===0) queue = shuffledIndices(lines.length);
+    return lines[queue.pop()];
+  };
+}
+
+function makeNpc(opts){
+  return Object.assign({
+    col:0, row:0, offset:{x:0,y:0},
+    phase:'pausing', timer: 0.6 + Math.random()*0.6, wpIndex:-1, speed:2.0,
+    relationship:0, romance:0,
+  }, opts);
+}
+
+/* ---- social groups: acting against one member nudges reputation with the whole group ---- */
+const FACTIONS = {
+  nerds:     { name:'Nerds',     rep:0 },
+  populares: { name:'Populares', rep:0 },
+  atletas:   { name:'Atletas',   rep:0 },
+};
+
+let tutor, novatoA, novatoB, diego, professor;
+const subjectPools = {}; // one shuffled question-picker per subject, built once
+Object.keys(QUIZZES).forEach(subject=>{ subjectPools[subject] = makePool(QUIZZES[subject]); });
+
+function resetNpcs(){
+  Object.values(FACTIONS).forEach(f=> f.rep = 0);
+  professor = { name:'Profª Célia', role:'professor', skin:'#e0a878', hair:'#2b2018', shirt:'#7a4a6a', col:12, row:43, phase:'stand', relationship:0, romance:0 };
+  tutor = makeNpc({
+    name:'Seu Ivo', role:'tutor', skin:'#e0a878', hair:'#2b2018', shirt:'#123f34', col:10.5, row:28, offset:{x:0,y:0}
+  });
+  novatoA = makeNpc({
+    name:'Bruno', role:'novato', faction:'nerds', skin:'#e0a878', hair:'#5c3a22', shirt:'#b8492c', col:9.5, row:28, offset:{x:-0.55,y:0.1},
+    combat:{ forca:4, agilidade:4, resistencia:3 },
+    getLine: makeLinePicker([
+      "Oi! Também é seu primeiro dia?",
+      "Nossa, essa escola é enorme, não acha?",
+      "Tô um pouco nervoso, e você?",
+      "Espero que a gente fique na mesma turma!",
+      "Você viu o tamanho do pátio lá fora?"
+    ])
+  });
+  novatoB = makeNpc({
+    name:'Larissa', role:'novato', faction:'populares', skin:'#e0a878', hair:'#5c3a22', shirt:'#c25a86', col:11.5, row:28, offset:{x:0.55,y:0.1},
+    combat:{ forca:4, agilidade:6, resistencia:4 },
+    getLine: makeLinePicker([
+      "Gostei da sua mochila!",
+      "Você mora longe daqui?",
+      "Será que já tem lugar marcado na sala?",
+      "Ouvi dizer que o recreio aqui é enorme.",
+      "Vamos ficar juntas no tour?"
+    ])
+  });
+  diego = makeNpc({
+    name:'Diego', role:'novato', faction:'atletas', skin:'#e0a878', hair:'#5c3a22', shirt:'#3e6fa8', col:11, row:29.8, offset:{x:0,y:0}, phase:'stand',
+    combat:{ forca:7, agilidade:7, resistencia:6 },
+    getLine: makeLinePicker([
+      "Bora jogar uma bola mais tarde?",
+      "Essa quadra aqui é boa, hein.",
+      "Você joga algum esporte?",
+      "Mal posso esperar pela Ed. Física.",
+      "Corre comigo até aquela árvore, aposto que ganho."
+    ])
+  });
+}
+
+/* ============================================================
+   AMBIENT NPCS — pure background life, no dialogue or combat, just
+   people doing something plausible so the map doesn't feel empty.
+   ============================================================ */
+const AMBIENT_NPCS = [
+  { name:'Seu Zé',    skin:'#b97a4e', hair:'#8f8f8f', shirt:'#5a6a4a', pants:'#3a3a3a', shoe:'#22262b', col:12,  row:31.5, activity:'sweep', wanderRadius:1.6 },
+  { name:'Beatriz',   skin:'#e0a878', hair:'#3a2a55', shirt:'#c9c3b3',                                col:14,  row:10,   activity:'read', wanderRadius:1.2 },
+  { name:'Sr. Ari',   skin:'#8a5a35', hair:'#2b2018', shirt:'#7a6a52', pants:'#4a3f2e',              col:25,  row:9,    activity:'newspaper', wanderRadius:1.2 },
+  { name:'Seu Nelson', skin:'#5c3a22', hair:'#2b2018', shirt:'#ec9a2e', pants:'#5a4a30',             col:6.3, row:16.5, activity:'idle' },
+  { name:'Rafael',    skin:'#f4c9a0', hair:'#5c3a22', shirt:'#6fb8dc',                               col:8,   row:21,   activity:'idle', wanderRadius:1.8 },
+  { name:'Camila',    skin:'#b97a4e', hair:'#2b2018', shirt:'#c25a86',                               col:15.4,row:30,   activity:'chat', wanderRadius:0.6 },
+  { name:'Thiago',    skin:'#e0a878', hair:'#3a2a55', shirt:'#3e6fa8',                               col:16.4,row:30,   activity:'chat', wanderRadius:0.6 },
+  { name:'Enzo',      skin:'#8a5a35', hair:'#5c3a22', shirt:'#b8492c',                               col:10.3,row:37,   activity:'drink' },
+  { name:'Gabriel',   skin:'#f4c9a0', hair:'#2b2018', shirt:'#1f6f5c', row:34, col:17, colA:17, colB:20, dir:1, speed:1.1, activity:'patrol' },
+];
+
+function updateAmbients(dt){
+  AMBIENT_NPCS.forEach(n=>{
+    if (n.activity === 'patrol'){
+      n.col += n.dir*n.speed*dt;
+      if (n.col > n.colB){ n.col = n.colB; n.dir = -1; }
+      if (n.col < n.colA){ n.col = n.colA; n.dir = 1; }
+      n.facing = n.dir > 0 ? 'right' : 'left';
+      n.moving = true;
+      return;
+    }
+    if (!n.wanderRadius) return;
+    // passeio curto e aleatório em volta do "posto" original — dá vida sem tirar ninguém do lugar certo
+    if (n.homeCol === undefined){ n.homeCol = n.col; n.homeRow = n.row; }
+    if (n.aiTimer === undefined) n.aiTimer = Math.random()*4;
+    n.aiTimer -= dt;
+    if (!n.aiTarget || n.aiTimer <= 0){
+      const ang = Math.random()*Math.PI*2, rad = Math.random()*n.wanderRadius;
+      n.aiTarget = { col: n.homeCol + Math.cos(ang)*rad, row: n.homeRow + Math.sin(ang)*rad };
+      n.aiTimer = 4 + Math.random()*6;
+    }
+    const dx = n.aiTarget.col-n.col, dy = n.aiTarget.row-n.row;
+    const dist = Math.hypot(dx,dy);
+    if (dist > 0.1){
+      const step = Math.min(dist, 0.7*dt);
+      n.col += (dx/dist)*step; n.row += (dy/dist)*step;
+      n.moving = true;
+      if (Math.abs(dx) > 0.02) n.facing = dx > 0 ? 'right' : 'left';
+    } else {
+      n.moving = false;
+    }
+  });
+}
+
+function drawActivityProp(n, sx, sy, t){
+  switch(n.activity){
+    case 'sweep': {
+      const angle = Math.sin(t/260)*0.45;
+      ctx.save(); ctx.translate(sx+9, sy-16); ctx.rotate(angle);
+      ctx.strokeStyle = '#8a6a3a'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(14,9); ctx.stroke();
+      ctx.fillStyle = '#c9a15a'; ctx.fillRect(11,6,9,6);
+      ctx.restore();
+      break;
+    }
+    case 'read':
+      ctx.fillStyle = '#ece6d6';
+      ctx.fillRect(sx-8, sy-33, 16, 11);
+      ctx.strokeStyle = 'rgba(0,0,0,.22)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(sx,sy-33); ctx.lineTo(sx,sy-22); ctx.stroke();
+      break;
+    case 'newspaper':
+      ctx.fillStyle = '#e8e2cf';
+      ctx.fillRect(sx-11, sy-41, 22, 16);
+      ctx.strokeStyle = 'rgba(0,0,0,.2)'; ctx.lineWidth = 1;
+      for (let i=0;i<3;i++){ ctx.beginPath(); ctx.moveTo(sx-8, sy-37+i*4); ctx.lineTo(sx+8, sy-37+i*4); ctx.stroke(); }
+      break;
+    case 'drink': {
+      const raise = Math.sin(t/450) > 0.6 ? -4 : 0;
+      ctx.fillStyle = '#e8592c';
+      ctx.fillRect(sx+7, sy-30+raise, 5, 7);
+      break;
+    }
+    case 'chat':
+      drawChatBubble(sx, sy, t, n.col);
+      break;
+  }
+}
+
+/* pequeno balão de "..." — usado tanto pela dupla de ambiente quanto por colegas nomeados
+   que se cruzam parados no pátio, como se estivessem batendo papo de verdade */
+function drawChatBubble(sx, sy, t, seed){
+  if (Math.sin(t/500 + seed) > 0.3){
+    ctx.fillStyle = 'rgba(255,255,255,.92)';
+    ctx.beginPath(); ctx.ellipse(sx, sy-58, 9, 6, 0, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#333'; ctx.font = '8px Karla, sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('•••', sx, sy-56);
+  }
+}
+
+/* pequenos trejeitos parados de cada colega — um toque de personalidade individual */
+function drawIdleQuirk(key, sx, sy, t){
+  if (key === 'novatoA'){ // Bruno folheia um livro
+    ctx.fillStyle = '#ece6d6';
+    ctx.fillRect(sx-8, sy-33, 16, 11);
+    ctx.strokeStyle = 'rgba(0,0,0,.22)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(sx,sy-33); ctx.lineTo(sx,sy-22); ctx.stroke();
+  } else if (key === 'novatoB'){ // Larissa se olha num espelhinho de bolso
+    ctx.save(); ctx.translate(sx+8, sy-32);
+    ctx.beginPath(); ctx.ellipse(0,0,4,5,0,0,Math.PI*2); ctx.fillStyle = '#dfeaf0'; ctx.fill();
+    ctx.strokeStyle = '#8a6a3a'; ctx.lineWidth = 1.4;
+    ctx.beginPath(); ctx.moveTo(0,5); ctx.lineTo(0,10); ctx.stroke();
+    ctx.restore();
+  } else if (key === 'diego'){ // Diego fica quicando uma bola
+    const bounce = Math.abs(Math.sin(t/380));
+    ctx.beginPath(); ctx.arc(sx+9, sy-4-bounce*10, 3.4, 0, Math.PI*2);
+    ctx.fillStyle = '#e0592c'; ctx.fill();
+  }
+}
+
+/* olhar pro jogador quando ele chega perto de alguém parado — sem sprite de costas, então só
+   vira a lateral (esquerda/direita) que já existe; se o jogador estiver acima/abaixo, mantém a
+   direção atual em vez de inventar uma pose que não temos */
+function livelyFacing(npc){
+  if (npc.phase === 'moving' || npc.moving) return npc.facing || 'down'; // já andando pra algum lugar — não interrompe pra "olhar"
+  const dx = player.col - npc.col, dy = player.row - npc.row;
+  if (Math.hypot(dx,dy) < 3.2 && Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 0.3){
+    return dx > 0 ? 'right' : 'left';
+  }
+  return npc.facing || 'down';
+}
+
+/* ============================================================
+   INIT / SCREEN FLOW
+   ============================================================ */
+const SKIN_TONES = ['#f4c9a0','#e0a878','#b97a4e','#8a5a35','#5c3a22'];
+const HAIR_COLORS = ['#2b2018','#5c3a22','#8a5a35','#c9c3b3','#3a2a55','#b8492c'];
+const SHIRT_COLORS = ['#1f6f5c','#ec9a2e','#b8492c','#6fb8dc','#ece6d6'];
+
+function buildSwatches(rowId, colors, key, onPick){
+  const row = document.getElementById(rowId);
+  colors.forEach((c,i)=>{
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'swatch'; b.style.background = c;
+    b.setAttribute('aria-label', key+' '+c);
+    if (i===0){ b.classList.add('active'); }
+    b.addEventListener('click', ()=>{
+      row.querySelectorAll('.swatch').forEach(s=>s.classList.remove('active'));
+      b.classList.add('active');
+      onPick(c);
+    });
+    row.appendChild(b);
+  });
+}
+
+const screens = ['screen-menu','screen-char','screen-family','screen-game'];
+function showScreen(id){
+  screens.forEach(s=>{ document.getElementById(s).hidden = (s!==id); });
+}
+
+function drawPreviewCanvas(){
+  const c = document.getElementById('preview');
+  const pctx = c.getContext('2d');
+  pctx.imageSmoothingEnabled = false;
+  pctx.clearRect(0,0,c.width,c.height);
+  drawPerson(pctx, c.width/2, c.height-30, player.skin, player.hair, player.shirt, 1.9, 'down', false);
+  document.getElementById('preview-name').textContent = player.name || 'aluno(a)';
+}
+
+function init(){
+  buildSwatches('row-skin', SKIN_TONES, 'skin', c=>{ player.skin=c; drawPreviewCanvas(); });
+  buildSwatches('row-hair', HAIR_COLORS, 'hair', c=>{ player.hair=c; drawPreviewCanvas(); });
+  buildSwatches('row-shirt', SHIRT_COLORS, 'shirt', c=>{ player.shirt=c; drawPreviewCanvas(); });
+  player.skin = SKIN_TONES[0]; player.hair = HAIR_COLORS[0]; player.shirt = SHIRT_COLORS[0];
+  drawPreviewCanvas();
+
+  document.getElementById('btn-start').addEventListener('click', ()=> showScreen('screen-char'));
+
+  document.getElementById('in-name').addEventListener('input', e=>{
+    player.name = e.target.value.trim();
+    drawPreviewCanvas();
+  });
+
+  document.getElementById('btn-to-family').addEventListener('click', ()=>{
+    if (!player.name) player.name = 'Aluno(a)';
+    showScreen('screen-family');
+  });
+
+  document.getElementById('in-fam1').addEventListener('input', e=> player.fam1 = e.target.value.trim());
+  document.getElementById('in-fam2').addEventListener('input', e=> player.fam2 = e.target.value.trim());
+
+  document.querySelectorAll('.income-card').forEach(card=>{
+    card.addEventListener('click', ()=>{
+      document.querySelectorAll('.income-card').forEach(c=>c.classList.remove('active'));
+      card.classList.add('active');
+      player.renda = card.dataset.income;
+    });
+  });
+  document.querySelector('.income-card[data-income="baixa"]').classList.add('active');
+
+  document.getElementById('btn-start-day').addEventListener('click', startGame);
+
+  document.getElementById('btn-close-schedule').addEventListener('click', ()=>{
+    document.getElementById('schedule-modal').hidden = true;
+  });
+
+  document.getElementById('btn-sheet').addEventListener('click', openSheet);
+  document.getElementById('btn-close-sheet').addEventListener('click', closeSheet);
+  document.getElementById('btn-close-fight').addEventListener('click', closeFight);
+  document.getElementById('btn-close-dayend').addEventListener('click', ()=>{
+    document.getElementById('dayend-modal').hidden = true;
+  });
+  document.getElementById('btn-npc-editor').addEventListener('click', openNpcEditor);
+  document.getElementById('btn-close-npc-editor').addEventListener('click', closeNpcEditor);
+
+  canvas = document.getElementById('game');
+  ctx = canvas.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+
+  window.addEventListener('keydown', e=>{
+    const k = e.key.toLowerCase();
+    KEYS[k] = true;
+    if (['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k)) e.preventDefault();
+    if (k==='e') handleInteractKey();
+    if (k==='tab'){ e.preventDefault(); sheetOpen() ? closeSheet() : openSheet(); }
+    if (k==='n' && !dialogueOpen){ npcEditorOpen() ? closeNpcEditor() : openNpcEditor(); }
+    if (k==='escape'){ if (sheetOpen()) closeSheet(); if (npcEditorOpen()) closeNpcEditor(); }
+  });
+  window.addEventListener('keyup', e=>{ KEYS[e.key.toLowerCase()] = false; });
+}
+
+function sheetOpen(){ return !document.getElementById('sheet-modal').hidden; }
+function openSheet(){
+  if (document.getElementById('screen-game').hidden) return; // only meaningful mid-game
+  if (!document.getElementById('fight-modal').hidden) return; // don't pause mid-fight to check stats
+  if (npcEditorOpen()) return;
+  buildAttrGrid();
+  updateRelationshipPanels();
+  document.getElementById('sheet-modal').hidden = false;
+}
+
+function updateRelationshipPanels(){
+  const relList = document.getElementById('rel-list');
+  relList.innerHTML = '';
+  [novatoA, novatoB, diego].forEach(npc=>{
+    const tier = npc.romance >= 70 ? { label:'Namorado(a)', emoji:'💜' } : relTier(npc.relationship);
+    const row = document.createElement('div');
+    row.className = 'rel-row';
+    row.innerHTML = '<span>'+npc.name+'</span><span class="tier">'+tier.emoji+' '+tier.label+'</span>';
+    relList.appendChild(row);
+  });
+
+  const facList = document.getElementById('faction-list');
+  facList.innerHTML = '';
+  Object.values(FACTIONS).forEach(f=>{
+    const row = document.createElement('div');
+    row.className = 'fac-row';
+    row.innerHTML = '<span>'+f.name+'</span><span class="v mono">'+Math.round(f.rep)+'</span>';
+    facList.appendChild(row);
+  });
+}
+function closeSheet(){ document.getElementById('sheet-modal').hidden = true; }
+
+/* ============================================================
+   NPC EDITOR — "modo personalizado": edita nome/pele/cabelo/camiseta
+   de QUALQUER NPC do jogo (nomeado ou de ambiente), em tempo real —
+   a mudança aparece na hora no mundo, porque a lista aponta direto
+   pros mesmos objetos que o resto do jogo usa pra desenhar/interagir.
+   ============================================================ */
+function getAllNpcRefs(){
+  const named = [
+    ['tutor', tutor, 'Coordenador'], ['novatoA', novatoA, 'Aluno(a)'], ['novatoB', novatoB, 'Aluno(a)'],
+    ['diego', diego, 'Aluno(a)'], ['professor', professor, 'Professora'],
+  ];
+  const list = named.map(([key,ref,role])=>({ key:'named:'+key, ref, role }));
+  AMBIENT_NPCS.forEach((ref,i)=> list.push({ key:'ambient:'+i, ref, role:'Ambiente' }));
+  return list;
+}
+let npcEditorSelectedKey = null;
+
+function npcEditorOpen(){ return !document.getElementById('npc-editor-modal').hidden; }
+function openNpcEditor(){
+  if (document.getElementById('screen-game').hidden) return;
+  if (!document.getElementById('fight-modal').hidden || dialogueOpen) return;
+  const listEl = document.getElementById('npc-editor-list');
+  listEl.innerHTML = '';
+  getAllNpcRefs().forEach(item=>{
+    const b = document.createElement('button');
+    b.type = 'button'; b.dataset.key = item.key;
+    b.textContent = item.ref.name+' — '+item.role;
+    b.addEventListener('click', ()=> selectNpcForEdit(item.key));
+    listEl.appendChild(b);
+  });
+  if (npcEditorSelectedKey) selectNpcForEdit(npcEditorSelectedKey);
+  document.getElementById('npc-editor-modal').hidden = false;
+}
+function closeNpcEditor(){ document.getElementById('npc-editor-modal').hidden = true; }
+
+function buildEditorSwatches(rowId, colors, currentColor, onPick){
+  const row = document.getElementById(rowId);
+  row.innerHTML = '';
+  colors.forEach(c=>{
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'swatch'; b.style.background = c;
+    if (currentColor && c.toLowerCase() === currentColor.toLowerCase()) b.classList.add('active');
+    b.addEventListener('click', ()=>{
+      row.querySelectorAll('.swatch').forEach(s=>s.classList.remove('active'));
+      b.classList.add('active');
+      onPick(c);
+    });
+    row.appendChild(b);
+  });
+}
+
+function renderNpcePreview(ref){
+  const c = document.getElementById('npce-preview');
+  const pctx = c.getContext('2d');
+  pctx.imageSmoothingEnabled = false;
+  pctx.clearRect(0,0,c.width,c.height);
+  drawPerson(pctx, c.width/2, c.height-16, ref.skin, ref.hair, ref.shirt, 1.5, 'down', false, ref.pants, ref.shoe, ref.hat);
+}
+
+function selectNpcForEdit(key){
+  npcEditorSelectedKey = key;
+  const item = getAllNpcRefs().find(i=>i.key===key);
+  if (!item) return;
+  const ref = item.ref;
+  document.querySelectorAll('#npc-editor-list button').forEach(b=> b.classList.toggle('active', b.dataset.key===key));
+  document.getElementById('npc-editor-form').hidden = false;
+
+  const nameInput = document.getElementById('npce-name');
+  nameInput.value = ref.name;
+  nameInput.oninput = (e)=>{
+    ref.name = e.target.value;
+    const btn = document.querySelector('#npc-editor-list button[data-key="'+key+'"]');
+    if (btn) btn.textContent = (ref.name||'—')+' — '+item.role;
+  };
+
+  buildEditorSwatches('npce-skin', SKIN_TONES, ref.skin, c=>{ ref.skin=c; renderNpcePreview(ref); });
+  buildEditorSwatches('npce-hair', HAIR_COLORS, ref.hair, c=>{ ref.hair=c; renderNpcePreview(ref); });
+  buildEditorSwatches('npce-shirt', SHIRT_COLORS, ref.shirt, c=>{ ref.shirt=c; renderNpcePreview(ref); });
+  renderNpcePreview(ref);
+}
+
+function buildAttrGrid(){
+  const el = document.getElementById('attr-grid');
+  el.innerHTML = '';
+  Object.entries(player.attrs).forEach(([key,val])=>{
+    const div = document.createElement('div');
+    div.className = 'attr-item';
+    div.innerHTML = '<span>'+ATTR_LABELS[key]+'</span><span class="v mono">'+val.toFixed(1)+'</span>';
+    el.appendChild(div);
+  });
+}
+
+function clamp01to100(v){ return Math.max(0, Math.min(100, v)); }
+function updateMoneyHud(){ document.getElementById('hud-money').textContent = '💰 R$ '+player.money; }
+function updateStatBars(){
+  const pct = { h:player.stats.health, e:player.stats.energy, m:player.stats.mood };
+  document.getElementById('bar-health').style.width = pct.h+'%';
+  document.getElementById('bar-energy').style.width = pct.e+'%';
+  document.getElementById('bar-mood').style.width = pct.m+'%';
+  document.getElementById('sheet-health').style.width = pct.h+'%';
+  document.getElementById('sheet-energy').style.width = pct.e+'%';
+  document.getElementById('sheet-mood').style.width = pct.m+'%';
+  document.getElementById('sheet-health-val').textContent = Math.round(pct.h);
+  document.getElementById('sheet-energy-val').textContent = Math.round(pct.e);
+  document.getElementById('sheet-mood-val').textContent = Math.round(pct.m);
+  document.getElementById('sheet-faltas').textContent = player.faltas;
+  document.getElementById('sheet-date').textContent = formatDateFull();
+  document.getElementById('sheet-season').textContent = currentSeason().icon+' '+currentSeason().name;
+  document.getElementById('sheet-weather').textContent = WEATHER_DEFS[weather.id].icon+' '+WEATHER_DEFS[weather.id].label;
+}
+
+function startGame(){
+  buildMap(player.renda);
+  const props = buildProps(player.renda);
+  interactables = [];
+  const lockerNums = {};
+  for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++){
+    if (grid[r][c]==='W') interactables.push({type:'fountain', col:c, row:r});
+    if (grid[r][c]==='K') { const num = lockerCounter++; interactables.push({type:'locker', col:c, row:r, num}); lockerNums[c+','+r] = num; }
+  }
+  const bedProp = props.find(p=>p.type==='bed');
+  if (bedProp) interactables.push({type:'bed', col:bedProp.col, row:bedProp.row});
+  const counterProp = props.find(p=>p.type==='counter');
+  if (counterProp) interactables.push({type:'cantina', col:counterProp.col, row:counterProp.row});
+  const kioskProp = props.find(p=>p.type==='kioskStand');
+  if (kioskProp) interactables.push({type:'kiosk', col:kioskProp.col, row:kioskProp.row});
+  window.__props = props;
+  window.__lockerNums = lockerNums;
+  window.__buildings = buildBuildings(player.renda);
+
+  player.col = 10; player.row = 2.5; player.facing='down';
+  player.stats = { health:100, energy:100, mood:80 };
+  player.money = player.renda === 'alta' ? 35 : 8; // mesada do dia, ligada à renda da família
+  player.faltas = 0;
+  attendanceTracker = { periodStart:null, hadSubject:false, subject:null, attended:false, caught:false };
+  lastBellPeriodStart = null;
+  Object.keys(dayStats).forEach(k=> dayStats[k]=0);
+  dayEndShown = false;
+  calendar = { day:2, month:1, year:2026, weekdayIndex:1 };
+  calendarAccum = 0;
+  weather = { id:'brisa', timer:15 };
+  updateMoneyHud();
+  gamePhase = 'YARD'; tourStarted = false; scheduleShown = false; fainted = false;
+  gameClockMinutes = SCHEDULE[0].startMin; useClockPill = false;
+  buildAttrGrid();
+  resetNpcs();
+
+  document.getElementById('hud-name').textContent = player.name;
+  document.getElementById('hud-swatch').style.background = player.shirt;
+  setPhasePill('🎒 A caminho da escola');
+  showToast('Setas/WASD pra andar, E pra interagir, Tab pra ver sua ficha.', 4600);
+
+  showScreen('screen-game');
+  requestAnimationFrame(loop);
+}
+
+/* ============================================================
+   ISOMETRIC PROJECTION
+   ============================================================ */
+function gridToScreen(col,row){
+  return { x:(col-row)*(TILE_W/2), y:(col+row)*(TILE_H/2) };
+}
+
+function drawDiamond(cx,cy,fill){
+  const top={x:cx,y:cy-TILE_H/2}, right={x:cx+TILE_W/2,y:cy}, bot={x:cx,y:cy+TILE_H/2}, left={x:cx-TILE_W/2,y:cy};
+  ctx.beginPath();
+  ctx.moveTo(top.x,top.y); ctx.lineTo(right.x,right.y); ctx.lineTo(bot.x,bot.y); ctx.lineTo(left.x,left.y);
+  ctx.closePath();
+  ctx.fillStyle = fill;
+  ctx.fill();
+  // cheap directional bevel: light edge upper-left, dark edge lower-right — gives every tile a faint 3D pop
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(left.x,left.y); ctx.lineTo(top.x,top.y); ctx.lineTo(right.x,right.y);
+  ctx.strokeStyle = 'rgba(255,255,255,.16)'; ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(right.x,right.y); ctx.lineTo(bot.x,bot.y); ctx.lineTo(left.x,left.y);
+  ctx.strokeStyle = 'rgba(0,0,0,.14)'; ctx.stroke();
+}
+
+/* per-tile-type surface texture, drawn on top of the flat fill so floors read as material, not just color */
+function drawTileTexture(ch,cx,cy,col,row){
+  const n = (i)=> noise2(col,row,i);
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(cx,cy-TILE_H/2); ctx.lineTo(cx+TILE_W/2,cy); ctx.lineTo(cx,cy+TILE_H/2); ctx.lineTo(cx-TILE_W/2,cy);
+  ctx.closePath(); ctx.clip();
+  if (ch==='.'){
+    for (let i=0;i<3;i++){
+      const tx = cx + (n(i)-0.5)*TILE_W*0.7, ty = cy + (n(i+9)-0.5)*TILE_H*0.7;
+      ctx.fillStyle = PAL.grassTuft;
+      ctx.fillRect(tx, ty, 2, 3);
+    }
+  } else if (ch==='p'){
+    for (let i=0;i<2;i++){
+      const tx = cx + (n(i+3)-0.5)*TILE_W*0.6, ty = cy + (n(i+13)-0.5)*TILE_H*0.6;
+      ctx.fillStyle = PAL.pathPebble;
+      ctx.beginPath(); ctx.ellipse(tx,ty,2,1.4,0,0,Math.PI*2); ctx.fill();
+    }
+  } else if (ch==='h' || ch==='1' || ch==='2' || ch==='3'){
+    ctx.strokeStyle = PAL.homePlank; ctx.globalAlpha = .5; ctx.lineWidth = 1;
+    for (let i=-1;i<=1;i++){
+      ctx.beginPath(); ctx.moveTo(cx-TILE_W/2, cy+i*8); ctx.lineTo(cx, cy+TILE_H/2+i*8*0.3); ctx.stroke();
+    }
+  } else if (ch==='f' || ch==='W' || ch==='K'){
+    ctx.strokeStyle = PAL.hallGrout; ctx.globalAlpha = .6; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(cx-TILE_W/2,cy); ctx.lineTo(cx+TILE_W/2,cy); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx,cy-TILE_H/2); ctx.lineTo(cx,cy+TILE_H/2); ctx.stroke();
+  } else if (ch==='c'){
+    ctx.strokeStyle = PAL.classroomGrout; ctx.globalAlpha = .55; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(cx-TILE_W/2,cy); ctx.lineTo(cx,cy-TILE_H/2); ctx.lineTo(cx+TILE_W/2,cy); ctx.stroke();
+  } else if (ch==='q'){
+    ctx.strokeStyle = PAL.quadraLine; ctx.globalAlpha = .5; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(cx-TILE_W/2,cy); ctx.lineTo(cx+TILE_W/2,cy); ctx.stroke();
+  } else if (ch==='y'){
+    for (let i=0;i<2;i++){
+      const tx = cx + (n(i+5)-0.5)*TILE_W*0.6, ty = cy + (n(i+15)-0.5)*TILE_H*0.6;
+      ctx.strokeStyle = 'rgba(0,0,0,.12)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(tx-4,ty); ctx.lineTo(tx+4,ty); ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
+function drawBlock(cx,cy,height,topColor,leftColor,rightColor){
+  const w=TILE_W, h=TILE_H;
+  const T = {x:cx, y:cy-h/2-height};
+  const R = {x:cx+w/2, y:cy-height};
+  const B = {x:cx, y:cy+h/2-height};
+  const L = {x:cx-w/2, y:cy-height};
+  const Gb = {x:cx, y:cy+h/2};
+  const Gr = {x:cx+w/2, y:cy};
+  const Gl = {x:cx-w/2, y:cy};
+  // left face
+  ctx.beginPath(); ctx.moveTo(L.x,L.y); ctx.lineTo(B.x,B.y); ctx.lineTo(Gb.x,Gb.y); ctx.lineTo(Gl.x,Gl.y); ctx.closePath();
+  ctx.fillStyle = leftColor; ctx.fill();
+  // right face
+  ctx.beginPath(); ctx.moveTo(B.x,B.y); ctx.lineTo(R.x,R.y); ctx.lineTo(Gr.x,Gr.y); ctx.lineTo(Gb.x,Gb.y); ctx.closePath();
+  ctx.fillStyle = rightColor; ctx.fill();
+  // top
+  ctx.beginPath(); ctx.moveTo(T.x,T.y); ctx.lineTo(R.x,R.y); ctx.lineTo(B.x,B.y); ctx.lineTo(L.x,L.y); ctx.closePath();
+  ctx.fillStyle = topColor; ctx.fill();
+}
+
+/* wall blocks get a faint brick/mortar pattern so they read as a built surface, not a flat slab */
+function drawWallTexture(cx,cy,height){
+  const w=TILE_W, h=TILE_H;
+  ctx.save();
+  ctx.strokeStyle = 'rgba(0,0,0,.16)'; ctx.lineWidth = 1;
+  // mortar lines on the two visible side faces
+  for (let i=1;i<=2;i++){
+    const t = i/3;
+    ctx.beginPath();
+    ctx.moveTo(cx-w/2, cy-height+t*(h/2));
+    ctx.lineTo(cx, cy-height+h/2+t*(h/2)*0.4);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(cx, cy-height+h/2+t*(h/2)*0.4);
+    ctx.lineTo(cx+w/2, cy-height+t*(h/2));
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function tileColor(ch,col,row){
+  const checker = (col+row)%2===0;
+  const season = currentSeason();
+  switch(ch){
+    case '.': return checker?season.grass:season.grassAlt;
+    case 'p': return checker?PAL.pathA:PAL.pathB;
+    case 'h': return player.renda==='alta'?PAL.homeHigh:PAL.homeLow;
+    case '1': return checker?PAL.house1:PAL.house1Alt;
+    case '2': return checker?PAL.house2:PAL.house2Alt;
+    case '3': return checker?PAL.house3:PAL.house3Alt;
+    case 'f': case 'W': case 'K': return checker?PAL.hallA:PAL.hallB;
+    case 'c': return checker?PAL.classroom:PAL.classroomAlt;
+    case 'y': return checker?PAL.patio:PAL.patioAlt;
+    case 'q': return checker?PAL.quadra:PAL.quadraAlt;
+    case 'n': return checker?PAL.cantina:PAL.cantinaAlt;
+    case 'b': return checker?PAL.banheiro:PAL.banheiroAlt;
+    case 'k': return checker?PAL.kiosk:PAL.kioskAlt;
+    case 'D': return PAL.doorway;
+    case 'G': return PAL.gate;
+    default: return PAL.grass;
+  }
+}
+
+const RUG_COLORS = { player:'#b8492c', bruno:'#3e6fa8', larissa:'#c25a86', diego:'#1f6f5c' };
+
+function drawProp(cx,cy,type,extra){
+  switch(type){
+    case 'rug':
+      ctx.save();
+      ctx.globalAlpha = 0.55;
+      ctx.beginPath(); ctx.ellipse(cx, cy, 22, 11, 0, 0, Math.PI*2);
+      ctx.fillStyle = extra || '#b8492c'; ctx.fill();
+      ctx.globalAlpha = 0.3;
+      ctx.beginPath(); ctx.ellipse(cx, cy, 14, 7, 0, 0, Math.PI*2);
+      ctx.fillStyle = '#fff'; ctx.fill();
+      ctx.restore();
+      break;
+    case 'fridge':
+      drawBlock(cx,cy,42,'#e8eef0','#aab7bb','#c3ced1');
+      ctx.strokeStyle = 'rgba(0,0,0,.18)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(cx-11,cy-26); ctx.lineTo(cx+11,cy-26); ctx.stroke();
+      ctx.fillStyle = '#8a939c';
+      ctx.fillRect(cx+6, cy-38, 2, 9);
+      ctx.fillRect(cx+6, cy-22, 2, 14);
+      break;
+    case 'stove':
+      drawBlock(cx,cy,20,'#d8d8d8','#9a9a9a','#b3b3b3');
+      ctx.fillStyle = '#2a2a2a';
+      [[-5,-16],[5,-16],[-5,-9],[5,-9]].forEach(([ox,oy])=>{
+        ctx.beginPath(); ctx.arc(cx+ox, cy+oy, 2.6, 0, Math.PI*2); ctx.fill();
+      });
+      break;
+    case 'wardrobe':
+      drawBlock(cx,cy,50,'#8a5a35','#5c3a22','#6b4a2c');
+      ctx.strokeStyle = 'rgba(0,0,0,.3)'; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.moveTo(cx,cy-56); ctx.lineTo(cx,cy+8); ctx.stroke();
+      ctx.fillStyle = '#e8d9b0';
+      ctx.beginPath(); ctx.arc(cx-4,cy-28,1.4,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx+4,cy-28,1.4,0,Math.PI*2); ctx.fill();
+      break;
+    case 'bookshelf': {
+      drawBlock(cx,cy,40,'#7a6a52','#4f4335','#5f5140');
+      const bookColors = ['#b8492c','#1f6f5c','#ec9a2e','#3e6fa8','#6a4a8a'];
+      for (let i=0;i<5;i++){ ctx.fillStyle = bookColors[i%bookColors.length]; ctx.fillRect(cx-10+i*4, cy-34, 3, 12); }
+      break;
+    }
+    case 'homeDesk':
+      drawBlock(cx,cy,16,'#c9a15a','#8a6a3a','#a37c45');
+      break;
+    case 'deskLamp':
+      ctx.fillStyle = '#5c5c5c'; ctx.fillRect(cx-1, cy-24, 2, 14);
+      ctx.beginPath(); ctx.moveTo(cx-6,cy-24); ctx.lineTo(cx+6,cy-24); ctx.lineTo(cx+3,cy-32); ctx.lineTo(cx-3,cy-32); ctx.closePath();
+      ctx.fillStyle = '#f2d98a'; ctx.fill();
+      break;
+    case 'diningTable':
+      drawBlock(cx,cy,18,'#c9a15a','#8a6a3a','#a37c45');
+      break;
+    case 'chair':
+      drawBlock(cx,cy,14,'#a37c45','#6b4a2c','#7c5934');
+      break;
+    case 'mirror':
+      ctx.fillStyle = '#8a6a3a'; ctx.fillRect(cx-7, cy-46, 14, 34);
+      ctx.fillStyle = '#dfeaf0'; ctx.fillRect(cx-5, cy-44, 10, 30);
+      ctx.strokeStyle = 'rgba(255,255,255,.5)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(cx-3,cy-40); ctx.lineTo(cx-1,cy-20); ctx.stroke();
+      break;
+    case 'ballRack':
+      ctx.fillStyle = '#6b4a2c'; ctx.fillRect(cx-8, cy-4, 16, 3);
+      ctx.beginPath(); ctx.arc(cx-4, cy-12, 5, 0, Math.PI*2); ctx.fillStyle = '#e0592c'; ctx.fill();
+      ctx.beginPath(); ctx.arc(cx+5, cy-11, 4.5, 0, Math.PI*2); ctx.fillStyle = '#ece6d6'; ctx.fill();
+      break;
+    case 'lamppost': {
+      ctx.fillStyle = '#3a3a3a'; ctx.fillRect(cx-2, cy-50, 4, 50);
+      const lit = timeOfDay(gameClockMinutes).isNight;
+      if (lit){ ctx.globalAlpha = 0.22; ctx.beginPath(); ctx.arc(cx,cy-54,18,0,Math.PI*2); ctx.fillStyle = '#ffe9a8'; ctx.fill(); ctx.globalAlpha = 1; }
+      ctx.beginPath(); ctx.arc(cx, cy-54, 6, 0, Math.PI*2);
+      ctx.fillStyle = lit ? '#ffe9a8' : '#8a8a7a'; ctx.fill();
+      break;
+    }
+    case 'bench':
+      drawBlock(cx,cy,10,'#a37c45','#6b4a2c','#7c5934');
+      break;
+    case 'mailbox':
+      ctx.fillStyle = '#6b4a2c'; ctx.fillRect(cx-1, cy-6, 2, 6);
+      ctx.fillStyle = '#3e6fa8'; ctx.fillRect(cx-4, cy-20, 8, 14);
+      ctx.beginPath(); ctx.ellipse(cx, cy-20, 4, 4, 0, Math.PI, 0); ctx.fill();
+      break;
+    case 'trashcan':
+      drawBlock(cx,cy,14,'#6c7480','#4a505a','#5c6470');
+      break;
+    case 'flagpole':
+      ctx.fillStyle = '#8a8a8a'; ctx.fillRect(cx-1, cy-70, 2, 70);
+      ctx.fillStyle = '#1f6f5c'; ctx.fillRect(cx+1, cy-70, 16,10);
+      break;
+    case 'bed':
+      drawBlock(cx,cy,10,PAL.bedSheet,PAL.bed,PAL.bed);
+      ctx.fillStyle = PAL.bedStripe;
+      ctx.fillRect(cx-14, cy-13, 28, 3);
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(cx-16, cy-8, 10, 6); // pillow
+      break;
+    case 'tv':
+      drawBlock(cx,cy,20,PAL.tv,PAL.tv,'#1a1f22');
+      ctx.fillStyle = PAL.tvGlow;
+      ctx.globalAlpha = 0.55 + Math.sin(performance.now()/400)*0.15;
+      ctx.fillRect(cx-10, cy-30, 20, 10);
+      ctx.globalAlpha = 1;
+      break;
+    case 'sofa':
+      drawBlock(cx,cy,12,PAL.sofa,'#2c5c49','#356a54');
+      ctx.strokeStyle = 'rgba(0,0,0,.25)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(cx,cy-12-12); ctx.lineTo(cx,cy-12); ctx.stroke();
+      break;
+    case 'tree': {
+      const season = currentSeason();
+      ctx.fillStyle = PAL.trunk;
+      ctx.fillRect(cx-3, cy-22, 6, 22);
+      ctx.beginPath(); ctx.ellipse(cx, cy-30, 16, 14, 0, 0, Math.PI*2);
+      ctx.fillStyle = season.tree; ctx.fill();
+      ctx.beginPath(); ctx.ellipse(cx-6, cy-35, 8, 6, 0, 0, Math.PI*2);
+      ctx.fillStyle = season.treeLight; ctx.fill();
+      break;
+    }
+    case 'fountainProp':
+      drawBlock(cx,cy,14,PAL.fountainBasin,'#3f7f97','#4a8fa8');
+      ctx.beginPath(); ctx.ellipse(cx, cy-14, 10, 5, 0,0,Math.PI*2);
+      ctx.fillStyle = PAL.fountainWater; ctx.fill();
+      // gentle animated shimmer on the water surface
+      ctx.beginPath();
+      ctx.ellipse(cx + Math.sin(performance.now()/500)*3, cy-14, 3, 1.4, 0, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(255,255,255,.8)'; ctx.fill();
+      break;
+    case 'lockerProp':
+      drawBlock(cx,cy,24,PAL.locker,'#5c6470','#727a86');
+      ctx.fillStyle = PAL.lockerDoor;
+      ctx.fillRect(cx-6, cy-30, 4, 20);
+      ctx.fillStyle = '#e8e2cf';
+      ctx.font = '8px "Space Mono", monospace'; ctx.textAlign = 'center';
+      ctx.fillText(extra ? String(extra) : '', cx+2, cy-14);
+      break;
+    case 'blackboard':
+      drawBlock(cx,cy,34,'#2f5240','#1f3b2c','#264633');
+      ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(cx-14,cy-24); ctx.lineTo(cx+6,cy-24); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx-14,cy-19); ctx.lineTo(cx-2,cy-19); ctx.stroke();
+      break;
+    case 'wallclock': {
+      const cyClock = cy - 45;
+      ctx.fillStyle = '#ece6d6';
+      ctx.beginPath(); ctx.arc(cx, cyClock, 9, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = '#2a2a2a'; ctx.lineWidth = 1.3;
+      ctx.stroke();
+      // ponteiros mostram a hora de verdade do jogo — dá pra "ver as horas" olhando pra parede da sala
+      const angHour = (((gameClockMinutes/60)%12)/12)*Math.PI*2 - Math.PI/2;
+      const angMin = ((gameClockMinutes%60)/60)*Math.PI*2 - Math.PI/2;
+      ctx.beginPath(); ctx.moveTo(cx,cyClock); ctx.lineTo(cx+Math.cos(angHour)*4.5, cyClock+Math.sin(angHour)*4.5); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx,cyClock); ctx.lineTo(cx+Math.cos(angMin)*6.5, cyClock+Math.sin(angMin)*6.5); ctx.stroke();
+      break;
+    }
+    case 'window':
+      drawBlock(cx,cy,38,'#bfe0ee','#7fa8ba','#8fb8c9');
+      ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.moveTo(cx,cy-56); ctx.lineTo(cx,cy-20); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx-11,cy-38); ctx.lineTo(cx+11,cy-38); ctx.stroke();
+      break;
+    case 'plant':
+      ctx.fillStyle = '#8a5a35'; ctx.fillRect(cx-5, cy-10, 10, 8);
+      ctx.beginPath(); ctx.ellipse(cx, cy-16, 9, 8, 0, 0, Math.PI*2); ctx.fillStyle = '#4f9e57'; ctx.fill();
+      ctx.beginPath(); ctx.ellipse(cx-4, cy-19, 4, 3.5, 0, 0, Math.PI*2); ctx.fillStyle = '#5b9c5e'; ctx.fill();
+      break;
+    case 'desk':
+      drawBlock(cx,cy,16,'#9fb3c9','#6c7f93','#7f93a7');
+      ctx.fillStyle = 'rgba(0,0,0,.15)';
+      ctx.fillRect(cx-9, cy-19, 18, 2);
+      break;
+    case 'counter':
+      drawBlock(cx,cy,16,PAL.counterTop,'#8a6a3a','#a37c45');
+      break;
+    case 'sink':
+      drawBlock(cx,cy,14,PAL.sink,'#6c96a6','#7ea6b6');
+      ctx.fillStyle = 'rgba(255,255,255,.5)';
+      ctx.beginPath(); ctx.ellipse(cx, cy-14, 5, 2.4, 0,0,Math.PI*2); ctx.fill();
+      break;
+    case 'hoop':
+      ctx.fillStyle = PAL.trunk; ctx.fillRect(cx-2, cy-46, 4, 46);
+      ctx.fillStyle = PAL.hoopBoard; ctx.fillRect(cx-9, cy-52, 18, 12);
+      ctx.strokeStyle = PAL.hoopRing; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.ellipse(cx, cy-40, 6, 2.4, 0,0,Math.PI*2); ctx.stroke();
+      break;
+    case 'kioskStand':
+      drawBlock(cx,cy,26,'#e6c37f','#a3782f','#bd8a3a');
+      ctx.fillStyle = '#b8492c';
+      ctx.beginPath(); ctx.moveTo(cx-16,cy-26); ctx.lineTo(cx+16,cy-26); ctx.lineTo(cx+10,cy-38); ctx.lineTo(cx-10,cy-38); ctx.closePath();
+      ctx.fill();
+      break;
+    case 'sign': {
+      const text = extra || '';
+      ctx.font = '11px "Baloo 2", sans-serif';
+      const w = ctx.measureText(text).width + 14;
+      ctx.fillStyle = 'rgba(20,29,24,.82)';
+      ctx.beginPath();
+      ctx.roundRect ? ctx.roundRect(cx-w/2, cy-58, w, 20, 4) : ctx.rect(cx-w/2, cy-58, w, 20);
+      ctx.fill();
+      ctx.fillStyle = '#f3ecd8';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(text, cx, cy-48);
+      ctx.textBaseline = 'alphabetic';
+      break;
+    }
+  }
+}
+
+/* ============================================================
+   PIXEL-ART CHARACTER SPRITES
+   Each character is drawn once per (colors + walk pose) onto a tiny
+   12x22 "pixel" canvas, cached, then blitted scaled + unsmoothed —
+   the classic low-res sprite trick, entirely code-generated.
+   ============================================================ */
+const SPRITE_W = 12, SPRITE_H = 22;
+const spriteCache = new Map();
+
+function buildSpriteFrame(skin, hair, shirt, pants, shoe, phase, hat){
+  const sc = document.createElement('canvas');
+  sc.width = SPRITE_W; sc.height = SPRITE_H;
+  const sctx = sc.getContext('2d');
+  sctx.imageSmoothingEnabled = false;
+  const px = (x,y,w,h,color)=>{ sctx.fillStyle = color; sctx.fillRect(x,y,w,h); };
+
+  // hair cap
+  px(2,0,8,1,hair); px(1,1,10,1,hair); px(0,2,12,1,hair);
+  // face
+  px(0,3,2,1,hair); px(2,3,8,1,skin); px(10,3,2,1,hair);
+  if (hat){
+    // a baseball-style cap worn over the hair, with a small brim poking forward-left
+    px(1,0,10,1,hat); px(0,1,12,1,hat); px(0,2,12,1,hat);
+    px(-1,3,3,1,darken(hat,20));
+  }
+  px(1,4,10,1,skin);
+  px(1,5,10,1,skin); px(3,5,1,1,'#26201c'); px(8,5,1,1,'#26201c'); // eyes
+  px(1,6,10,1,skin);
+  px(2,7,8,1,skin);
+  px(3,8,6,1,skin); // neck
+
+  // torso + tucked hands
+  px(1,9,10,1,shirt);
+  px(0,10,12,3,shirt);
+  px(0,13,1,2,skin); px(1,13,10,2,shirt); px(11,13,1,2,skin);
+  px(1,15,10,1,shirt);
+  // belt
+  px(1,16,10,1,darken(pants,28));
+
+  // legs — alternate which leg is "forward" (shorter) to fake a walk cycle
+  if (phase==='legL'){
+    px(0,16,6,3,pants); px(0,19,6,1,shoe);       // left leg lifted (forward)
+    px(6,17,6,4,pants); px(6,21,6,1,shoe);       // right leg planted
+  } else if (phase==='legR'){
+    px(0,17,6,4,pants); px(0,21,6,1,shoe);       // left leg planted
+    px(6,16,6,3,pants); px(6,19,6,1,shoe);       // right leg lifted (forward)
+  } else {
+    px(0,17,6,4,pants); px(0,21,6,1,shoe);
+    px(6,17,6,4,pants); px(6,21,6,1,shoe);
+  }
+  // one-pixel shading pass: darken the sprite's right edge, lighten the left, cheap ambient occlusion
+  sctx.globalAlpha = 0.14; sctx.fillStyle = '#000';
+  sctx.fillRect(SPRITE_W-3,0,3,SPRITE_H);
+  sctx.globalAlpha = 0.10; sctx.fillStyle = '#fff';
+  sctx.fillRect(0,0,2,SPRITE_H);
+  sctx.globalAlpha = 1;
+  return sc;
+}
+
+function getSprite(skin, hair, shirt, pants, shoe, phase, hat){
+  const key = skin+'|'+hair+'|'+shirt+'|'+pants+'|'+shoe+'|'+phase+'|'+(hat||'none');
+  let s = spriteCache.get(key);
+  if (!s){ s = buildSpriteFrame(skin,hair,shirt,pants,shoe,phase,hat); spriteCache.set(key,s); }
+  return s;
+}
+
+function walkPhase(isMoving, clock){
+  if (!isMoving) return 'stand';
+  return Math.floor(clock/170) % 2 === 0 ? 'legL' : 'legR';
+}
+
+/* draws the cached pixel sprite scaled up, unsmoothed, anchored at feet (sx,sy) */
+function drawPerson(context, sx, sy, skin, hair, shirt, scale, facing, isMoving, pants, shoe, hat){
+  pants = pants || PAL.uniformPants; shoe = shoe || PAL.uniformShoe;
+  const t = performance.now();
+  const phase = walkPhase(isMoving, t);
+  const sprite = getSprite(skin, hair, shirt, pants, shoe, phase, hat);
+  const PX = 4 * (scale/2.0); // base pixel size, scaled to caller's requested size
+  const w = SPRITE_W*PX, h = SPRITE_H*PX;
+
+  // menos robótico: uma leve "respiração" parado, e um saltinho sincronizado com o passo ao andar
+  const bob = isMoving ? -Math.abs(Math.sin(t/170*Math.PI)) * 2 : Math.sin(t/900) * 1.1;
+
+  context.save();
+  // shadow — encolhe um pouquinho quando o personagem "sobe" no saltinho, reforçando a profundidade
+  context.beginPath();
+  context.ellipse(sx, sy+3, w*0.32*(1-Math.abs(bob)*0.015), h*0.09, 0, 0, Math.PI*2);
+  context.fillStyle = PAL.shadow;
+  context.fill();
+
+  const prevSmooth = context.imageSmoothingEnabled;
+  context.imageSmoothingEnabled = false;
+  context.translate(sx, sy - h + 4 + bob);
+  if (facing==='left'){ context.translate(w/2,0); context.scale(-1,1); context.translate(-w/2,0); }
+  context.drawImage(sprite, 0, 0, SPRITE_W, SPRITE_H, 0, 0, w, h);
+  context.imageSmoothingEnabled = prevSmooth;
+  context.restore();
+}
+
+/* ============================================================
+   NPC SCRIPTED MOVEMENT (tour)
+   ============================================================ */
+const PAUSE_DURATION = 2.4;
+
+function updateScriptedNpc(npc, dt, onArriveWaypoint){
+  if (npc.phase === 'done') return;
+  if (npc.phase === 'pausing'){
+    npc.timer -= dt;
+    if (npc.timer <= 0){
+      if (npc.wpIndex >= WAYPOINTS.length - 1){ npc.phase = 'done'; if (onArriveWaypoint) onArriveWaypoint(npc.wpIndex, true); return; }
+      npc.wpIndex++;
+      npc.phase = 'moving';
+    }
+    return;
+  }
+  // moving
+  const wp = WAYPOINTS[npc.wpIndex];
+  const tx = wp.col + npc.offset.x, ty = wp.row + npc.offset.y;
+  const dx = tx - npc.col, dy = ty - npc.row;
+  const dist = Math.hypot(dx,dy);
+  if (dist < 0.06){
+    npc.col = tx; npc.row = ty;
+    npc.phase = 'pausing'; npc.timer = PAUSE_DURATION;
+    if (onArriveWaypoint) onArriveWaypoint(npc.wpIndex, false);
+  } else {
+    const step = Math.min(dist, npc.speed*dt);
+    npc.col += (dx/dist)*step;
+    npc.row += (dy/dist)*step;
+  }
+}
+
+/* ============================================================
+   NPC ROTINA — depois que o tour termina, TODOS os NPCs nomeados
+   seguem a própria agenda: alunos vão pra carteira quando o sinal
+   bate e circulam pelo pátio fora do horário; o Seu Ivo faz ronda
+   pelo saguão/pátio; a Profª Célia dá uns passinhos perto da lousa
+   nos intervalos, sempre voltando a tempo da próxima aula; e todos
+   saem andando até o portão na Saída. Roda só depois que useClockPill
+   liga e o tour do Seu Ivo termina de verdade (tutor.phase==='done').
+
+   O mapa tem um único gargalo estreito (o corredor, colunas 10-11,
+   linhas 36-41) entre a área aberta (pátio/saguão) e a sala de aula —
+   um NPC que precise atravessar essa fronteira é roteado por um
+   "espinhaço" de pontos alinhados ao corredor, em vez de andar em
+   linha reta (que atravessaria a parede).
+   ============================================================ */
+const CLASS_SEATS = {
+  novatoA: {col:8,  row:43.6},
+  novatoB: {col:13, row:43.6},
+  diego:   {col:17, row:43.6},
+};
+const PATIO_SPOTS = [
+  {col:11, row:30}, {col:16, row:31}, {col:19, row:29.6}, {col:9, row:31.5}, {col:14, row:30.5},
+];
+const HALL_PATROL_SPOTS = [
+  {col:6, row:34}, {col:20, row:34}, {col:14, row:30.5}, {col:5, row:30}, {col:23, row:31},
+];
+const PROFESSOR_SPOTS = [
+  {col:10, row:43}, {col:14, row:43}, {col:12, row:44},
+];
+const GATE_SPOT = {col:10.5, row:28.3};
+const NPC_ROUTINES = {
+  novatoA:   { classSeat:CLASS_SEATS.novatoA, wander:PATIO_SPOTS,       shelterWander:HALL_PATROL_SPOTS, leaveSpot:GATE_SPOT, speed:1.6 },
+  novatoB:   { classSeat:CLASS_SEATS.novatoB, wander:PATIO_SPOTS,       shelterWander:HALL_PATROL_SPOTS, leaveSpot:GATE_SPOT, speed:1.6 },
+  diego:     { classSeat:CLASS_SEATS.diego,   wander:PATIO_SPOTS,       shelterWander:HALL_PATROL_SPOTS, leaveSpot:GATE_SPOT, speed:1.8 },
+  tutor:     { classSeat:null,                wander:HALL_PATROL_SPOTS, shelterWander:null,               leaveSpot:null,      speed:1.4 },
+  professor: { classSeat:{col:12,row:43},     wander:PROFESSOR_SPOTS,   shelterWander:null,               leaveSpot:null,      speed:1.0 },
+};
+const BAD_WEATHER = ['chuva','granizo','frio']; // faz os alunos preferirem o saguão coberto ao pátio
+
+// só existem duas "zonas" separadas pelo gargalo do corredor: dentro da sala (south) e o resto (north)
+function scheduleZoneOf(row){ return row >= 41.7 ? 'south' : 'north'; }
+function buildScheduleRoute(npc, target){
+  if (scheduleZoneOf(npc.row) === scheduleZoneOf(target.row)) return [target];
+  const spine = scheduleZoneOf(npc.row) === 'north'
+    ? [{col:10.5,row:35.8}, {col:10.5,row:38}, {col:10.5,row:41.4}]
+    : [{col:10.5,row:41.4}, {col:10.5,row:38}, {col:10.5,row:35.8}];
+  return [...spine, target];
+}
+function moveAlongRoute(npc, dt, speed){
+  if (!npc.routeQueue || npc.routeQueue.length === 0) return true;
+  const wp = npc.routeQueue[0];
+  const dx = wp.col-npc.col, dy = wp.row-npc.row;
+  const dist = Math.hypot(dx,dy);
+  if (dist < 0.1){
+    npc.col = wp.col; npc.row = wp.row;
+    npc.routeQueue.shift();
+    return npc.routeQueue.length === 0;
+  }
+  const step = Math.min(dist, speed*dt);
+  npc.col += (dx/dist)*step; npc.row += (dy/dist)*step;
+  if (Math.abs(dx) > 0.02) npc.facing = dx > 0 ? 'right' : 'left';
+  return false;
+}
+
+function updateScheduleAI(key, npc, dt){
+  if (!useClockPill || tutor.phase !== 'done') return;
+  const routine = NPC_ROUTINES[key];
+  const period = currentPeriod(gameClockMinutes);
+  let target, targetId;
+  if (period.subject && routine.classSeat){
+    target = routine.classSeat; targetId = 'class:'+period.startMin;
+  } else if (period.name === 'Saída' && routine.leaveSpot){
+    target = routine.leaveSpot; targetId = 'leave';
+  } else {
+    // clima ruim? quem tem pra onde correr prefere o saguão coberto ao pátio aberto — igual você faria
+    const pool = (BAD_WEATHER.includes(weather.id) && routine.shelterWander) ? routine.shelterWander : routine.wander;
+    if (npc.aiTimer === undefined) npc.aiTimer = 0;
+    npc.aiTimer -= dt;
+    if (!npc.aiSpot || npc.aiTimer <= 0 || npc.aiPool !== pool){
+      npc.aiSpot = pick(pool);
+      npc.aiPool = pool;
+      npc.aiTimer = 6 + Math.random()*8;
+      npc.aiSeq = (npc.aiSeq||0) + 1;
+    }
+    target = npc.aiSpot; targetId = 'wander:'+npc.aiSeq;
+  }
+  if (npc.routeTargetId !== targetId){
+    npc.routeTargetId = targetId;
+    npc.routeQueue = buildScheduleRoute(npc, target);
+  }
+  const arrived = moveAlongRoute(npc, dt, routine.speed);
+  npc.phase = arrived ? 'stand' : 'moving';
+}
+
+function startTour(){
+  tourStarted = true;
+  gamePhase = 'TOUR';
+  setPhasePill('🏫 Tour de boas-vindas');
+  tutor.wpIndex = -1; tutor.timer = 0.4; tutor.phase='pausing';
+  novatoA.wpIndex = -1; novatoA.timer = 0.7; novatoA.phase='pausing';
+  novatoB.wpIndex = -1; novatoB.timer = 0.9; novatoB.phase='pausing';
+}
+
+function onTutorWaypoint(idx, finished){
+  if (idx < 0) return;
+  showCaption('Seu Ivo', TUTOR_CAPTIONS[idx]);
+  if (finished){
+    gamePhase = 'CLASSROOM_DONE';
+    useClockPill = true;
+    setTimeout(openSchedule, 1600);
+    setTimeout(()=> showToast('Fale com a Profª Célia (E) na hora da aula pra responder as perguntas!', 4200), 3600);
+  }
+}
+
+/* ============================================================
+   UI HELPERS
+   ============================================================ */
+function setPhasePill(text){ document.getElementById('hud-phase').textContent = text; }
+
+let toastTimer = null;
+function showToast(text, ms){
+  const el = document.getElementById('toast');
+  el.textContent = text; el.hidden = false; el.style.opacity = '1';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>{ el.style.opacity='0'; setTimeout(()=> el.hidden = true, 400); }, ms||3000);
+}
+
+let captionTimer = null;
+function showCaption(who, text){
+  document.getElementById('caption-who').textContent = who;
+  document.getElementById('caption-text').textContent = text;
+  document.getElementById('caption').hidden = false;
+  clearTimeout(captionTimer);
+  captionTimer = setTimeout(()=>{ document.getElementById('caption').hidden = true; }, PAUSE_DURATION*1000 - 200);
+}
+
+function triggerFaint(){
+  if (fainted) return;
+  fainted = true;
+  showCaption('Você', 'Sua energia acabou e você desmaia de exaustão...');
+  showToast('Desmaiou de exaustão — indo pra cama.', 2600);
+  setTimeout(()=>{
+    const bed = interactables.find(i=>i.type==='bed');
+    if (bed){ player.col = bed.col; player.row = bed.row + 0.8; }
+    player.stats.energy = 55;
+    player.stats.mood = clamp01to100(player.stats.mood - 10);
+    gameClockMinutes += 30;
+    fainted = false;
+    showToast('Você acorda na sua cama, um pouco mais descansado(a).', 3200);
+  }, 1900);
+}
+
+function attendanceVerdict(faltas){
+  if (faltas === 0) return 'Nenhuma falta hoje — presença exemplar! 🌟';
+  if (faltas === 1) return 'Uma falta passou batida, mas é bom não repetir a dose.';
+  return 'Duas faltas renderam uma bronca da coordenação — melhor não arriscar uma terceira.';
+}
+
+function openDayEnd(){
+  document.getElementById('de-faltas').textContent = player.faltas;
+  document.getElementById('de-faltas-note').textContent = attendanceVerdict(player.faltas);
+  document.getElementById('de-quiz').textContent = dayStats.quizCorrect+'/'+dayStats.quizTotal;
+  document.getElementById('de-int').textContent = player.attrs.inteligencia.toFixed(1);
+  document.getElementById('de-discipline').textContent = dayStats.disciplineCount;
+  document.getElementById('de-fights').textContent = dayStats.fightWins+'/'+dayStats.fightLosses+'/'+dayStats.fightFlees;
+  document.getElementById('de-money').textContent = 'R$'+player.money;
+
+  const relEl = document.getElementById('de-rel');
+  relEl.innerHTML = '';
+  [novatoA, novatoB, diego].forEach(npc=>{
+    const tier = npc.romance >= 70 ? { label:'Namorado(a)', emoji:'💜' } : relTier(npc.relationship);
+    const row = document.createElement('div');
+    row.className = 'rel-row';
+    row.innerHTML = '<span>'+npc.name+'</span><span class="tier">'+tier.emoji+' '+tier.label+'</span>';
+    relEl.appendChild(row);
+  });
+
+  document.getElementById('dayend-modal').hidden = false;
+}
+
+function openSchedule(){
+  if (scheduleShown) return;
+  scheduleShown = true;
+  const now = currentPeriod(gameClockMinutes);
+  const ul = document.getElementById('timetable');
+  ul.innerHTML = '';
+  SCHEDULE.slice(1).forEach(item=>{ // skip the internal "Antes da aula" marker
+    const li = document.createElement('li');
+    const status = item===now ? 'now' : (item.startMin < now.startMin ? 'feito' : 'soon');
+    li.className = status==='now' ? 'now' : (status==='soon' ? 'soon' : '');
+    li.innerHTML = '<span class="time">'+formatClock(item.startMin)+'</span><span class="name">'+item.icon+' '+item.name+'</span><span class="status">'+(status==='now'?'agora':status==='feito'?'feito':'em breve')+'</span>';
+    ul.appendChild(li);
+  });
+  document.getElementById('schedule-modal').hidden = false;
+}
+
+/* ---- interaction / dialogue ---- */
+function nearestInteractable(){
+  let best=null, bestDist=1.05;
+  const npcs = [novatoA, novatoB, diego, professor];
+  npcs.forEach(n=>{
+    const d = Math.hypot(n.col-player.col, n.row-player.row);
+    if (d < bestDist){ bestDist=d; best = {type:'npc', ref:n}; }
+  });
+  interactables.forEach(it=>{
+    const d = Math.hypot(it.col-player.col, it.row-player.row);
+    if (d < bestDist){ bestDist=d; best = {type:it.type, ref:it}; }
+  });
+  return best;
+}
+
+function handleInteractKey(){
+  if (!document.getElementById('fight-modal').hidden) return;
+  if (npcEditorOpen()) return;
+  // diálogo de "flagra" (triggerCaught/triggerFightCatch): só se resolve escolhendo um botão —
+  // 'E' não pode fechá-lo, senão disciplineLock fica travado pra sempre (nada mais o zeraria)
+  if (disciplineLock) return;
+  if (dialogueOpen){ closeDialogue(); return; }
+  if (sheetOpen()) return;
+  const target = nearestInteractable();
+  if (!target) return;
+  if (target.type==='npc' && target.ref.role==='professor') openClassQuiz();
+  else if (target.type==='npc') openNpcDialogue(target.ref);
+  else if (target.type==='fountain'){
+    player.stats.energy = clamp01to100(player.stats.energy + 15);
+    player.stats.mood = clamp01to100(player.stats.mood + 5);
+    openObjectDialogue('Bebedouro', 'Você bebe uma água geladinha. 💧 (+15 energia)');
+  } else if (target.type==='locker'){
+    openObjectDialogue('Armário nº '+target.ref.num, 'Esse é o seu armário! Guarde seu material aqui.');
+  } else if (target.type==='bed'){
+    player.stats.energy = 100;
+    player.stats.mood = clamp01to100(player.stats.mood + 10);
+    gameClockMinutes += 60;
+    openObjectDialogue('Sua cama', 'Você tira uma soneca rápida e acorda revigorado(a). 😴 (energia cheia, +1h)');
+  } else if (target.type==='cantina'){
+    openShop();
+  } else if (target.type==='kiosk'){
+    openClothingShop();
+  }
+}
+
+function closeDialogue(){
+  dialogueOpen = false;
+  document.getElementById('dialogue').hidden = true;
+}
+
+const FACTION_HOSTILE_REP = -40; // mesmo limiar que relTier() já usa pra rotular "Inimigo" — agora também lido, não só escrito
+function relTier(v){
+  if (v <= FACTION_HOSTILE_REP) return { label:'Inimigo', emoji:'💢' };
+  if (v < 30)  return { label:'Neutro',  emoji:'😐' };
+  if (v < 70)  return { label:'Amigo',   emoji:'🙂' };
+  return { label:'Melhor amigo', emoji:'⭐' };
+}
+function clampRel(v){ return Math.max(-100, Math.min(100, v)); }
+function clampRomance(v){ return Math.max(0, Math.min(100, v)); }
+function isFactionHostile(npc){
+  return !!(npc.faction && FACTIONS[npc.faction].rep <= FACTION_HOSTILE_REP);
+}
+function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+function fmt(str,name){ return str.replace('{name}', name); }
+
+const SOCIAL_ACTIONS = {
+  elogiar: {
+    label:'Elogiar',
+    run(npc){
+      const delta = 4 + Math.random()*4;
+      npc.relationship = clampRel(npc.relationship + delta);
+      player.stats.mood = clamp01to100(player.stats.mood + 2);
+      return { delta, line: fmt(pick([
+        '{name} sorri, meio sem graça: "Ah, valeu!"',
+        '{name}: "Nossa, obrigado(a)! Ninguém tinha reparado nisso."',
+        '{name} parece genuinamente feliz com o elogio.'
+      ]), npc.name) };
+    }
+  },
+  piada: {
+    label:'Fazer piada',
+    run(npc){
+      const hostile = isFactionHostile(npc);
+      const hit = Math.random() < (hostile ? charismaChance(0.30, 0.25) : charismaChance(0.65, 0.3));
+      const delta = hit ? 3 + Math.random()*4 : -(Math.random()*3);
+      npc.relationship = clampRel(npc.relationship + delta);
+      if (hit) growCarisma(0.1);
+      return { delta, line: hit
+        ? fmt(pick(['{name} dá risada: "Boa essa!"','{name} ri alto — conseguiu!']), npc.name)
+        : fmt(pick(['{name} dá aquele sorriso amarelo.','{name}: "...ok." (não colou)']), npc.name) };
+    }
+  },
+  insultar: {
+    label:'Insultar',
+    run(npc){
+      const delta = -(8 + Math.random()*7);
+      npc.relationship = clampRel(npc.relationship + delta);
+      if (npc.faction) FACTIONS[npc.faction].rep = clampRel(FACTIONS[npc.faction].rep + delta*0.3);
+      player.stats.mood = clamp01to100(player.stats.mood - 2);
+      return { delta, line: fmt(pick([
+        '{name} fica com os olhos marejados e se afasta.',
+        '{name}: "Isso foi desnecessário." (e conta pros outros)',
+        '{name} te encara com raiva.'
+      ]), npc.name) };
+    }
+  },
+  paquerar: {
+    label:'Paquerar',
+    run(npc){
+      const goodOdds = npc.relationship >= 20 && Math.random() < charismaChance(0.75, 0.2);
+      if (goodOdds){
+        const delta = 3 + Math.random()*3;
+        npc.relationship = clampRel(npc.relationship + delta);
+        npc.romance = clampRomance(npc.romance + 6 + Math.random()*6);
+        growCarisma(0.15);
+        return { delta, romance:true, line: fmt(pick([
+          '{name} fica levemente corado(a) e sorri.',
+          '{name}: "Para de me olhar assim, para..." (mas sorrindo)'
+        ]), npc.name) };
+      }
+      const delta = -(3 + Math.random()*5);
+      npc.relationship = clampRel(npc.relationship + delta);
+      return { delta, line: fmt(pick([
+        '{name} dá risada, sem graça: "A gente nem se conhece direito ainda..."',
+        '{name} recua um passo, meio desconfortável.'
+      ]), npc.name) };
+    }
+  },
+};
+
+const getFactionHostileLine = makeLinePicker([
+  '{name} cruza os braços e nem te olha direito: "Os outros comentaram o que você fez..."',
+  '{name} responde seco, sem tirar os olhos do chão: "Fala rápido, tá?"',
+  '{name} troca um olhar feio com a turma antes de te dar bola.',
+  '{name}: "Você não tá muito bem-vindo(a) por aqui, sabia?"',
+  '{name} suspira e cruza os braços, esperando você desistir de puxar assunto.'
+]);
+
+function openNpcDialogue(npc){
+  dialogueOpen = true;
+  const hostile = isFactionHostile(npc);
+  const line = hostile ? fmt(getFactionHostileLine(), npc.name) : npc.getLine(); // TODO: trocar por geração de diálogo via IA (backend) numa fase futura
+  document.getElementById('dlg-who').textContent = npc.name;
+  document.getElementById('dlg-text').textContent = line;
+  const replies = document.getElementById('dlg-replies');
+  replies.innerHTML = '';
+  const HIDDEN_WHEN_HOSTILE = ['elogiar','paquerar'];
+  Object.entries(SOCIAL_ACTIONS).forEach(([key,action])=>{
+    if (hostile && HIDDEN_WHEN_HOSTILE.includes(key)) return;
+    const b = document.createElement('button');
+    b.textContent = action.label;
+    b.addEventListener('click', ()=>{
+      const result = action.run(npc);
+      const tier = npc.romance >= 70 ? { label:'Namorado(a)', emoji:'💜' } : relTier(npc.relationship);
+      const sign = result.delta >= 0 ? '+' : '';
+      showToast(result.line, 3200);
+      setTimeout(()=> showToast(npc.name+': '+tier.emoji+' '+tier.label+' ('+sign+Math.round(result.delta)+')', 2600), 3300);
+      closeDialogue();
+    });
+    replies.appendChild(b);
+  });
+  if (npc.romance >= 70){
+    const giftBtn = document.createElement('button');
+    giftBtn.textContent = '🎁 Dar um presente';
+    giftBtn.style.borderColor = 'var(--mango)';
+    giftBtn.style.color = 'var(--mango-deep)';
+    giftBtn.addEventListener('click', ()=>{ openGiftMenu(npc); });
+    replies.appendChild(giftBtn);
+  }
+  const fightBtn = document.createElement('button');
+  fightBtn.textContent = '👊 Brigar';
+  fightBtn.style.borderColor = 'var(--brick)';
+  fightBtn.style.color = 'var(--brick)';
+  fightBtn.addEventListener('click', ()=>{ closeDialogue(); startFight(npc); });
+  replies.appendChild(fightBtn);
+  document.getElementById('dialogue').hidden = false;
+}
+
+/* ============================================================
+   COMBAT — cartoonish, turn-based: pick a move, trade blows.
+   Uses Força/Agilidade/Resistência (attack/dodge/damage-reduction)
+   and spends real Energia — the same pools the rest of the game reads.
+   ============================================================ */
+const MOVES = {
+  soco:    { label:'👊 Soco',      cost:6,  dmg:[6,1.2],  acc:0.82 },
+  chute:   { label:'🦵 Chute',     cost:12, dmg:[10,1.6], acc:0.68 },
+  agarrao: { label:'🤼 Agarrão',   cost:20, dmg:[16,2.0], acc:0.52 },
+  objeto:  { label:'🪑 Usar objeto', cost:10, dmg:[14,1.0], acc:0.62, flat:6 },
+};
+const IMPROVISED_OBJECTS = ['uma cadeira','uma vassoura','uma mochila','um livro','uma bola de basquete'];
+
+let fight = null; // { npc, npcHealth, playerName }
+
+function rollHit(baseAcc, atkAgi, defAgi){
+  return Math.random() < Math.max(0.1, Math.min(0.95, baseAcc + (atkAgi-defAgi)*0.02));
+}
+function rollDamage(move, atkForca, defResistencia){
+  const [base, perForca] = move.dmg;
+  const raw = base + atkForca*perForca + (move.flat||0);
+  return Math.max(1, Math.round(raw * (1 - defResistencia*0.04)));
+}
+
+function startFight(npc){
+  fight = { npc, npcHealth:100, log:'Você parte pra cima de '+npc.name+'!' };
+  document.getElementById('fight-title').textContent = 'Confronto: Você vs '+npc.name;
+  document.getElementById('fight-player-name').textContent = 'Você';
+  document.getElementById('fight-npc-name').textContent = npc.name;
+  document.getElementById('fight-result').hidden = true;
+  document.getElementById('fight-moves').hidden = false;
+  renderFight();
+  document.getElementById('fight-modal').hidden = false;
+}
+
+function renderFight(){
+  document.getElementById('fight-player-bar').style.width = player.stats.health+'%';
+  document.getElementById('fight-npc-bar').style.width = Math.max(0,fight.npcHealth)+'%';
+  document.getElementById('fight-log').textContent = fight.log;
+  const movesEl = document.getElementById('fight-moves');
+  movesEl.innerHTML = '';
+  Object.entries(MOVES).forEach(([key,move])=>{
+    const b = document.createElement('button');
+    b.textContent = move.label+' (custa '+move.cost+' energia)';
+    b.disabled = player.stats.energy < move.cost;
+    b.addEventListener('click', ()=> playerMove(key));
+    movesEl.appendChild(b);
+  });
+  const flee = document.createElement('button');
+  flee.className = 'flee';
+  flee.textContent = '🏃 Fugir';
+  flee.addEventListener('click', tryFlee);
+  movesEl.appendChild(flee);
+}
+
+function playerMove(key){
+  const move = MOVES[key];
+  const npc = fight.npc;
+  player.stats.energy = clamp01to100(player.stats.energy - move.cost);
+  let log = '';
+  if (rollHit(move.acc, player.attrs.agilidade, npc.combat.agilidade)){
+    const dmg = rollDamage(move, player.attrs.forca, npc.combat.resistencia);
+    fight.npcHealth -= dmg;
+    log = key==='objeto'
+      ? 'Você pega '+pick(IMPROVISED_OBJECTS)+' e acerta '+npc.name+' em cheio! (-'+dmg+')'
+      : 'Você acerta um '+move.label.replace(/^\S+\s/,'')+' em '+npc.name+'! (-'+dmg+')';
+  } else {
+    log = npc.name+' se esquiva do seu ataque!';
+  }
+  fight.log = log;
+  updateStatBars();
+  if (fight.npcHealth <= 0){ endFight('vitoria'); return; }
+  renderFight();
+  setTimeout(npcMove, 900);
+}
+
+function npcMove(){
+  if (!fight) return;
+  const npc = fight.npc;
+  const key = pick(['soco','soco','chute','chute','agarrao']);
+  const move = MOVES[key];
+  let log = fight.log + ' ';
+  if (rollHit(move.acc, npc.combat.agilidade, player.attrs.agilidade)){
+    const dmg = rollDamage(move, npc.combat.forca, player.attrs.resistencia);
+    player.stats.health = clamp01to100(player.stats.health - dmg);
+    log += npc.name+' revida com um '+move.label.replace(/^\S+\s/,'')+'! (-'+dmg+' em você)';
+  } else {
+    log += 'Você se esquiva!';
+  }
+  fight.log = log;
+  updateStatBars();
+  if (player.stats.health <= 0){ endFight('nocaute'); return; }
+  renderFight();
+}
+
+function tryFlee(){
+  const npc = fight.npc;
+  const fleeChance = Math.max(0.15, Math.min(0.9, 0.5 + (player.attrs.agilidade-npc.combat.agilidade)*0.05));
+  if (Math.random() < fleeChance){
+    endFight('fuga');
+    return;
+  }
+  const move = MOVES.soco;
+  const dmg = rollDamage(move, npc.combat.forca, player.attrs.resistencia);
+  player.stats.health = clamp01to100(player.stats.health - dmg);
+  fight.log = 'Você tenta fugir, mas '+npc.name+' acerta um golpe de saída! (-'+dmg+')';
+  updateStatBars();
+  if (player.stats.health <= 0){ endFight('nocaute'); return; }
+  renderFight();
+}
+
+function endFight(outcome){
+  const npc = fight.npc;
+  document.getElementById('fight-log').textContent = fight.log;
+  document.getElementById('fight-player-bar').style.width = player.stats.health+'%';
+  document.getElementById('fight-npc-bar').style.width = Math.max(0,fight.npcHealth)+'%';
+  document.getElementById('fight-moves').hidden = true;
+  const resultEl = document.getElementById('fight-result');
+  const textEl = document.getElementById('fight-result-text');
+  let relDelta = 0;
+  if (outcome==='vitoria'){
+    dayStats.fightWins++;
+    relDelta = -(40+Math.random()*20);
+    player.attrs.forca = Math.min(10, player.attrs.forca+0.2);
+    player.attrs.agilidade = Math.min(10, player.attrs.agilidade+0.15);
+    player.stats.mood = clamp01to100(player.stats.mood + 5);
+    textEl.textContent = 'Você venceu o confronto contra '+npc.name+'. A relação (e a reputação com o grupo dele) desabou.';
+  } else if (outcome==='nocaute'){
+    dayStats.fightLosses++;
+    relDelta = -(30+Math.random()*15);
+    player.stats.mood = clamp01to100(player.stats.mood - 15);
+    textEl.textContent = 'Você apanhou feio e foi nocauteado(a) por '+npc.name+'. Acordou levado(a) pra enfermaria.';
+  } else {
+    dayStats.fightFlees++;
+    relDelta = -15;
+    textEl.textContent = 'Você conseguiu fugir da briga antes que piorasse.';
+  }
+  npc.relationship = clampRel(npc.relationship + relDelta);
+  if (npc.faction) FACTIONS[npc.faction].rep = clampRel(FACTIONS[npc.faction].rep + relDelta*0.4);
+  buildAttrGrid();
+
+  pendingFightCatch = rollFightCatch(outcome); // NOVO — decide agora, com o jogador ainda no local da briga
+
+  resultEl.hidden = false;
+  if (outcome==='nocaute'){
+    setTimeout(()=>{
+      player.stats.health = 40; // sempre recupera um mínimo, independente de ser flagrado ou não
+      if (!pendingFightCatch){
+        // ninguém notou: carregado(a) discretamente pra cama de casa, como antes
+        const bed = interactables.find(i=>i.type==='bed');
+        if (bed){ player.col = bed.col; player.row = bed.row + 0.8; }
+        gameClockMinutes += 40;
+      }
+      // se pendingFightCatch, o jogador é flagrado ainda desacordado(a) no local da briga —
+      // não faz sentido já tê-lo(a) carregado pra casa antes disso (ver triggerFightCatch/closeFight,
+      // que vão confrontá-lo(a) e, se necessário, mandá-lo(a) pra diretoria a partir de onde está)
+    }, 400);
+  }
+  fight = null;
+}
+
+function closeFight(){
+  document.getElementById('fight-modal').hidden = true;
+  const shouldCatch = pendingFightCatch && !disciplineLock && !dialogueOpen;
+  pendingFightCatch = false;
+  if (shouldCatch) triggerFightCatch();
+}
+
+/* ---- cantina: spend the day's mesada on food that restores energy/humor ---- */
+const SHOP_ITEMS = [
+  { name:'Maçã',       price:2, energy:8,  mood:3,  health:2, emoji:'🍎' },
+  { name:'Suco',       price:3, energy:10, mood:8,  health:0, emoji:'🧃' },
+  { name:'Coxinha',    price:4, energy:20, mood:5,  health:0, emoji:'🥟' },
+  { name:'Chocolate',  price:5, energy:5,  mood:15, health:0, emoji:'🍫' },
+];
+
+function openShop(){
+  dialogueOpen = true;
+  document.getElementById('dlg-who').textContent = 'Cantina';
+  document.getElementById('dlg-text').textContent = 'Você tem 💰 R$ '+player.money+'. O que quer comprar?';
+  renderShopButtons();
+  document.getElementById('dialogue').hidden = false;
+}
+
+function renderShopButtons(){
+  const replies = document.getElementById('dlg-replies');
+  replies.innerHTML = '';
+  SHOP_ITEMS.forEach(item=>{
+    const b = document.createElement('button');
+    b.textContent = item.emoji+' '+item.name+' — R$'+item.price;
+    b.disabled = player.money < item.price;
+    b.addEventListener('click', ()=> buyItem(item));
+    replies.appendChild(b);
+  });
+  const leave = document.createElement('button');
+  leave.textContent = 'Sair';
+  leave.addEventListener('click', closeDialogue);
+  replies.appendChild(leave);
+}
+
+function buyItem(item){
+  player.money -= item.price;
+  player.stats.energy = clamp01to100(player.stats.energy + item.energy);
+  player.stats.mood = clamp01to100(player.stats.mood + item.mood);
+  if (item.health) player.stats.health = clamp01to100(player.stats.health + item.health);
+  updateMoneyHud();
+  updateStatBars();
+  document.getElementById('dlg-text').textContent = 'Você comprou '+item.emoji+' '+item.name+'. 💰 R$ '+player.money+' restantes.';
+  renderShopButtons(); // refresh so items you can no longer afford grey out
+}
+
+/* ---- presente: só aparece quando romance>=70 (tier "Namorado(a)" 💜); reaproveita o catálogo da cantina ---- */
+const getGiftReactionLine = makeLinePicker([
+  '{name} dá aquele sorrisão e guarda o presentinho: "Você é um docinho, sabia?"',
+  '{name} fica todo(a) derretido(a): "Não precisava, mas adorei!"',
+  '{name} morde os lábios de tanto sorrir e te dá um abraço rápido.',
+  '{name}: "Você sempre sabe o que eu tô a fim de comer..." 😳'
+]);
+
+function openGiftMenu(npc){
+  document.getElementById('dlg-who').textContent = npc.name;
+  document.getElementById('dlg-text').textContent = npc.name+' repara no que você trouxe. Você tem 💰 R$ '+player.money+'. Dar o quê?';
+  renderGiftButtons(npc);
+}
+
+function renderGiftButtons(npc){
+  const replies = document.getElementById('dlg-replies');
+  replies.innerHTML = '';
+  SHOP_ITEMS.forEach(item=>{
+    const b = document.createElement('button');
+    b.textContent = item.emoji+' '+item.name+' — R$'+item.price;
+    b.disabled = player.money < item.price;
+    b.addEventListener('click', ()=> giveGift(npc, item));
+    replies.appendChild(b);
+  });
+  const back = document.createElement('button');
+  back.textContent = 'Sair';
+  back.addEventListener('click', closeDialogue);
+  replies.appendChild(back);
+}
+
+function giveGift(npc, item){
+  player.money -= item.price;
+  npc.romance = clampRomance(npc.romance + item.mood*0.6);
+  npc.relationship = clampRel(npc.relationship + item.mood*0.3);
+  player.stats.mood = clamp01to100(player.stats.mood + item.mood*0.4);
+  updateMoneyHud();
+  updateStatBars();
+  const tier = npc.romance >= 70 ? { label:'Namorado(a)', emoji:'💜' } : relTier(npc.relationship);
+  showToast(fmt(getGiftReactionLine(), npc.name), 3200);
+  setTimeout(()=> showToast(npc.name+': '+tier.emoji+' '+tier.label+' (+'+Math.round(item.mood*0.3)+')', 2600), 3300);
+  closeDialogue();
+}
+
+/* ---- quiosque: cosmetic customization spent from the same mesada ---- */
+const CLOTHING_ITEMS = [
+  { name:'Camiseta listrada', price:6, type:'shirt', value:'#e0592c', emoji:'👕' },
+  { name:'Camiseta roxa',     price:6, type:'shirt', value:'#6a4a8a', emoji:'👕' },
+  { name:'Camiseta preta',    price:8, type:'shirt', value:'#2a2a2a', emoji:'👕' },
+  { name:'Boné vermelho',     price:10, type:'hat', value:'#b8492c', emoji:'🧢' },
+  { name:'Boné azul',         price:10, type:'hat', value:'#2c5c8a', emoji:'🧢' },
+];
+
+function openClothingShop(){
+  dialogueOpen = true;
+  document.getElementById('dlg-who').textContent = 'Quiosque';
+  document.getElementById('dlg-text').textContent = 'Você tem 💰 R$ '+player.money+'. Dá uma repaginada no visual?';
+  renderClothingButtons();
+  document.getElementById('dialogue').hidden = false;
+}
+
+function renderClothingButtons(){
+  const replies = document.getElementById('dlg-replies');
+  replies.innerHTML = '';
+  CLOTHING_ITEMS.forEach(item=>{
+    const b = document.createElement('button');
+    b.textContent = item.emoji+' '+item.name+' — R$'+item.price;
+    b.disabled = player.money < item.price;
+    b.addEventListener('click', ()=> buyClothing(item));
+    replies.appendChild(b);
+  });
+  if (player.hat){
+    const removeHat = document.createElement('button');
+    removeHat.textContent = '🚫 Tirar boné';
+    removeHat.addEventListener('click', ()=>{
+      player.hat = null;
+      document.getElementById('dlg-text').textContent = 'Você guardou o boné na mochila.';
+      renderClothingButtons();
+    });
+    replies.appendChild(removeHat);
+  }
+  const leave = document.createElement('button');
+  leave.textContent = 'Sair';
+  leave.addEventListener('click', closeDialogue);
+  replies.appendChild(leave);
+}
+
+function buyClothing(item){
+  player.money -= item.price;
+  if (item.type === 'shirt'){
+    player.shirt = item.value;
+    document.getElementById('hud-swatch').style.background = player.shirt;
+  } else if (item.type === 'hat'){
+    player.hat = item.value;
+  }
+  updateMoneyHud();
+  document.getElementById('dlg-text').textContent = 'Você comprou '+item.emoji+' '+item.name+'. 💰 R$ '+player.money+' restantes.';
+  renderClothingButtons();
+}
+
+function openObjectDialogue(title, text){
+  dialogueOpen = true;
+  document.getElementById('dlg-who').textContent = title;
+  document.getElementById('dlg-text').textContent = text;
+  const replies = document.getElementById('dlg-replies');
+  replies.innerHTML = '';
+  const b = document.createElement('button');
+  b.textContent = 'Continuar';
+  b.addEventListener('click', closeDialogue);
+  replies.appendChild(b);
+  document.getElementById('dialogue').hidden = false;
+}
+
+function openClassQuiz(){
+  const period = currentPeriod(gameClockMinutes);
+  if (!period.subject){
+    const flavor = {
+      'Antes da aula':'A aula ainda não começou — sente-se e aguarde o sinal.',
+      'Entrada':'Quase na hora! Aguarde o sinal para a aula começar.',
+      'Recreio':'Sem aula agora — aproveite o recreio!',
+      'Apresentação escolar':'Hora da apresentação — sem aula nesse período.',
+      'Saída':'As aulas já acabaram por hoje. Até amanhã!',
+    };
+    openObjectDialogue(professor.name, flavor[period.name] || 'Nenhuma aula agora.');
+    return;
+  }
+  const item = subjectPools[period.subject]();
+  dialogueOpen = true;
+  document.getElementById('dlg-who').textContent = professor.name + ' — ' + period.subject;
+  document.getElementById('dlg-text').textContent = item.q;
+  const replies = document.getElementById('dlg-replies');
+  replies.innerHTML = '';
+  item.opts.forEach((opt,i)=>{
+    const b = document.createElement('button');
+    b.textContent = opt;
+    b.addEventListener('click', ()=>{
+      dayStats.quizTotal++;
+      if (i===item.correct){
+        dayStats.quizCorrect++;
+        player.attrs.inteligencia = Math.min(10, player.attrs.inteligencia + 0.4);
+        player.stats.mood = clamp01to100(player.stats.mood + 6);
+        player.money += 1;
+        updateMoneyHud();
+        showToast('Certinho! 🧠 +Inteligência, 💰 +R$1', 2200);
+      } else {
+        player.stats.mood = clamp01to100(player.stats.mood - 4);
+        showToast('Não foi dessa vez... a resposta certa era "'+item.opts[item.correct]+'"', 2600);
+      }
+      buildAttrGrid();
+      closeDialogue();
+    });
+    replies.appendChild(b);
+  });
+  document.getElementById('dialogue').hidden = false;
+}
+
+/* ============================================================
+   MAIN LOOP
+   ============================================================ */
+let lastTime = performance.now();
+
+function loop(now){
+  const dt = Math.min(0.05, (now-lastTime)/1000);
+  lastTime = now;
+  update(dt);
+  render();
+  requestAnimationFrame(loop);
+}
+
+function update(dt){
+  gameClockMinutes += dt * MINUTES_PER_SECOND;
+  document.getElementById('hud-clock').textContent = timeOfDay(gameClockMinutes).icon+' '+formatClock(gameClockMinutes);
+  document.getElementById('hud-season').textContent = currentSeason().icon+' '+formatDateShort();
+  document.getElementById('hud-weather').textContent = WEATHER_DEFS[weather.id].icon+' '+WEATHER_DEFS[weather.id].label;
+  if (useClockPill){
+    const p = currentPeriod(gameClockMinutes);
+    setPhasePill(p.icon+' '+p.name);
+  }
+
+  // needs decay — a school day is tiring; recover via the fountain or a bed
+  if (canvas && !fainted){
+    player.stats.energy = clamp01to100(player.stats.energy - dt*0.4);
+    player.stats.mood = clamp01to100(player.stats.mood - dt*0.08);
+    if (player.stats.energy <= 0) triggerFaint();
+  }
+  updateStatBars();
+  handleTardiness(dt);
+  checkAttendance();
+  checkBell();
+  checkDayEnd();
+  advanceCalendar(dt);
+  updateWeather(dt);
+  updateParticles(dt);
+  updateAmbients(dt);
+
+  // player movement
+  const fightModalOpen = !document.getElementById('fight-modal').hidden;
+  const dayEndModalOpen = !document.getElementById('dayend-modal').hidden;
+  const inputLocked = dialogueOpen || fainted || disciplineLock || fightModalOpen || dayEndModalOpen || !document.getElementById('schedule-modal').hidden || sheetOpen() || npcEditorOpen();
+  if (!inputLocked){
+    let dx=0, dy=0;
+    if (KEYS['arrowup']||KEYS['w']) dy -= 1;
+    if (KEYS['arrowdown']||KEYS['s']) dy += 1;
+    if (KEYS['arrowleft']||KEYS['a']) dx -= 1;
+    if (KEYS['arrowright']||KEYS['d']) dx += 1;
+    const moving = dx!==0 || dy!==0;
+    player.moving = moving;
+    if (moving){
+      const len = Math.hypot(dx,dy);
+      dx/=len; dy/=len;
+      if (Math.abs(dx) > Math.abs(dy)) player.facing = dx>0?'right':'left';
+      else player.facing = dy>0?'down':'up';
+      const speed = 3.1;
+      const nc = player.col + dx*speed*dt;
+      const nr = player.row + dy*speed*dt;
+      if (isWalkable(nc, player.row)) player.col = nc;
+      if (isWalkable(player.col, nr)) player.row = nr;
+    }
+    // gate trigger
+    if (!tourStarted && tileAt(player.col, player.row) === 'G'){
+      startTour();
+    }
+  }
+
+  if (gamePhase === 'TOUR' || tutor.phase !== 'done'){
+    updateScriptedNpc(tutor, dt, onTutorWaypoint);
+  } else {
+    updateScheduleAI('tutor', tutor, dt); // vira coordenador de ronda assim que o tour termina
+  }
+  if (tourStarted){
+    if (novatoA.phase === 'done') updateScheduleAI('novatoA', novatoA, dt); else updateScriptedNpc(novatoA, dt);
+    if (novatoB.phase === 'done') updateScheduleAI('novatoB', novatoB, dt); else updateScriptedNpc(novatoB, dt);
+  }
+  updateScheduleAI('diego', diego, dt);     // nunca fez parte do tour guiado, mas segue a mesma rotina de horário
+  updateScheduleAI('professor', professor, dt); // se afasta um pouco da lousa fora do horário de aula, sempre volta a tempo
+
+  // interact prompt visibility
+  const prompt = document.getElementById('interact-prompt');
+  prompt.hidden = inputLocked || !nearestInteractable();
+}
+
+function render(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  const playerScreen = gridToScreen(player.col, player.row);
+  const offX = canvas.width/2 - playerScreen.x;
+  const offY = canvas.height/2 - playerScreen.y;
+
+  // floor / wall tiles
+  for (let r=0;r<ROWS;r++){
+    for (let c=0;c<COLS;c++){
+      const ch = grid[r][c];
+      const s = gridToScreen(c,r);
+      const sx = s.x+offX, sy = s.y+offY;
+      if (sx < -80 || sx > canvas.width+80 || sy < -120 || sy > canvas.height+80) continue;
+      if (ch === '#'){
+        drawBlock(sx, sy, WALL_HEIGHT, PAL.wallTop, PAL.wallLeft, PAL.wallRight);
+        drawWallTexture(sx, sy, WALL_HEIGHT);
+      } else {
+        drawDiamond(sx, sy, tileColor(ch,c,r));
+        drawTileTexture(ch, sx, sy, c, r);
+        if (ch==='W') drawProp(sx,sy,'fountainProp');
+        if (ch==='K') drawProp(sx,sy,'lockerProp', (window.__lockerNums||{})[c+','+r]);
+      }
+    }
+  }
+
+  // roofs — Sims-style cutaway: skip drawing a building's roof while the player is inside it
+  (window.__buildings||[]).forEach(b=>{
+    if (isInsideBuilding(b)) return;
+    for (let r=b.y0; r<=b.y1; r++){
+      for (let c=b.x0; c<=b.x1; c++){
+        const s = gridToScreen(c,r);
+        const sx = s.x+offX, sy = s.y+offY - WALL_HEIGHT;
+        if (sx < -80 || sx > canvas.width+80 || sy < -140 || sy > canvas.height+80) continue;
+        drawDiamond(sx, sy, b.roofColor);
+      }
+    }
+  });
+
+  // depth-sorted entities + props
+  const drawables = [];
+  (window.__props||[]).forEach(p=>{
+    const s = gridToScreen(p.col,p.row);
+    drawables.push({depth:p.col+p.row, draw:()=> drawProp(s.x+offX, s.y+offY, p.type, p.text)});
+  });
+  const NAMED_NPCS = [['tutor',tutor],['novatoA',novatoA],['novatoB',novatoB],['diego',diego],['professor',professor]];
+  function nearbyIdleStudent(npc){
+    return [novatoA,novatoB,diego].some(o=> o!==npc && o.phase==='stand' && Math.hypot(o.col-npc.col,o.row-npc.row) < 1.8);
+  }
+  NAMED_NPCS.forEach(([key,n])=>{
+    const s = gridToScreen(n.col,n.row);
+    const isMoving = n.phase==='moving';
+    const isAdult = n.role==='tutor' || n.role==='professor';
+    drawables.push({depth:n.col+n.row, draw:()=> {
+      const sx = s.x+offX, sy = s.y+offY, t = performance.now();
+      drawPerson(ctx, sx, sy, n.skin, n.hair, n.shirt, 2.0, livelyFacing(n), isMoving,
+        isAdult ? '#6b5a3a' : PAL.uniformPants, isAdult ? '#3a2f1e' : PAL.uniformShoe);
+      if (n.role==='novato' && n.phase==='stand'){
+        drawIdleQuirk(key, sx, sy, t);
+        if (nearbyIdleStudent(n)) drawChatBubble(sx, sy, t, n.col);
+      }
+      ctx.fillStyle = 'rgba(20,29,24,.75)';
+      ctx.font = '11px Karla, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(n.name, sx, sy-94);
+    }});
+  });
+  AMBIENT_NPCS.forEach(n=>{
+    const s = gridToScreen(n.col,n.row);
+    const sx = s.x+offX, sy = s.y+offY;
+    if (sx < -100 || sx > canvas.width+100 || sy < -160 || sy > canvas.height+100) return; // cheap culling, there are a few of these now
+    drawables.push({depth:n.col+n.row, draw:()=> {
+      const t = performance.now();
+      drawPerson(ctx, sx, sy, n.skin, n.hair, n.shirt, 2.0, livelyFacing(n), !!n.moving, n.pants, n.shoe);
+      drawActivityProp(n, sx, sy, t);
+    }});
+  });
+  {
+    const s = gridToScreen(player.col, player.row);
+    drawables.push({depth:player.col+player.row+0.001, draw:()=> drawPerson(ctx, s.x+offX, s.y+offY, player.skin, player.hair, player.shirt, 2.0, player.facing, player.moving, undefined, undefined, player.hat)});
+  }
+  drawables.sort((a,b)=>a.depth-b.depth);
+  drawables.forEach(d=>d.draw());
+
+  // soft vignette — cheap depth cue, keeps focus on the character
+  const vg = ctx.createRadialGradient(canvas.width/2,canvas.height/2,canvas.height*0.32, canvas.width/2,canvas.height/2,canvas.height*0.78);
+  vg.addColorStop(0,'rgba(0,0,0,0)');
+  vg.addColorStop(1,'rgba(10,16,12,.28)');
+  ctx.fillStyle = vg;
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  // day/night wash, straight from the clock
+  const tod = timeOfDay(gameClockMinutes);
+  if (tod.a > 0.01){
+    ctx.fillStyle = 'rgba('+Math.round(tod.r)+','+Math.round(tod.g)+','+Math.round(tod.b)+','+tod.a.toFixed(2)+')';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+  }
+
+  // weather wash (rain/hail darken and cool the scene a bit further)
+  const wtint = WEATHER_DEFS[weather.id].tint;
+  if (wtint){
+    ctx.fillStyle = 'rgba('+wtint.r+','+wtint.g+','+wtint.b+','+wtint.a+')';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+  }
+
+  renderParticles();
+}
+
+init();
+})();
+</script>
