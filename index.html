@@ -1,5 +1,6 @@
 <!doctype html>
 <title>Primeiro Sinal</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Karla:ital,wght@0,400;0,500;0,700;1,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
@@ -124,6 +125,9 @@ button:focus-visible, input:focus-visible, .card:focus-visible{outline:3px solid
 }
 .btn-primary:hover{ transform:translateY(-1px); }
 .btn-primary:active{ transform:translateY(3px); box-shadow:0 1px 0 var(--mango-deep); }
+.btn-primary:disabled, .btn-ghost:disabled{
+  opacity:.55; cursor:not-allowed; transform:none !important; box-shadow:none;
+}
 .btn-ghost{
   background:transparent; border:2px solid var(--green); color:var(--green);
   font-family:'Baloo 2',sans-serif; font-weight:700; font-size:1rem;
@@ -180,6 +184,31 @@ button:focus-visible, input:focus-visible, .card:focus-visible{outline:3px solid
 #game-frame .corner.br{ bottom:-2px; right:-2px; }
 
 canvas#game{ display:block; width:100%; height:auto; background:#8fbf76; }
+
+/* controles touch — só aparecem em telas de toque (celular/tablet), teclado continua igual no desktop */
+#touch-controls{ display:none; }
+@media (pointer: coarse){
+  #touch-controls{ display:block; }
+}
+#touch-dpad{
+  position:absolute; left:14px; bottom:14px; z-index:5;
+  width:132px; height:132px;
+  display:grid; grid-template-columns:42px 42px 42px; grid-template-rows:42px 42px 42px; gap:2px;
+}
+.tpad{
+  background:rgba(20,29,24,.72); border:1px solid rgba(255,255,255,.25); border-radius:8px;
+  color:#f3ecd8; font-size:1.1rem; touch-action:none; user-select:none; padding:0;
+}
+.tpad[data-dir="up"]{ grid-column:2; grid-row:1; }
+.tpad[data-dir="left"]{ grid-column:1; grid-row:2; }
+.tpad[data-dir="right"]{ grid-column:3; grid-row:2; }
+.tpad[data-dir="down"]{ grid-column:2; grid-row:3; }
+#touch-interact{
+  position:absolute; right:18px; bottom:24px; z-index:5;
+  width:64px; height:64px; border-radius:50%; padding:0;
+  background:var(--mango); color:var(--green-deep); font-family:'Baloo 2',sans-serif; font-weight:700; font-size:1.3rem;
+  border:none; box-shadow:0 4px 0 var(--mango-deep); touch-action:none; user-select:none;
+}
 
 #hud{
   position:absolute; top:10px; left:10px; right:10px;
@@ -340,6 +369,13 @@ canvas#game{ display:block; width:100%; height:auto; background:#8fbf76; }
   z-index:4; box-shadow:0 3px 0 var(--mango-deep);
 }
 kbd{ background:var(--green-deep); color:#fff; padding:1px 6px; border-radius:3px; font-family:'Space Mono',monospace; }
+/* em telas de toque o d-pad/botão-E tomam os cantos inferiores — sobe a legenda e o aviso de
+   interação pra não ficarem escondidos atrás deles (precisa vir depois das regras base acima
+   pra realmente vencer, já que a especificidade do seletor é igual) */
+@media (pointer: coarse){
+  #caption{ bottom:170px; }
+  #interact-prompt{ bottom:160px; }
+}
 
 #dialogue{
   position:absolute; left:50%; bottom:16px; transform:translateX(-50%);
@@ -400,6 +436,9 @@ kbd{ background:var(--green-deep); color:#fff; padding:1px 6px; border-radius:3p
       <span class="badge">💬 Protótipo v0.1</span>
     </div>
     <button class="btn-primary" id="btn-start">Fazer matrícula →</button>
+    <div id="continue-row" hidden style="margin-top:12px;">
+      <button class="btn-ghost" id="btn-continue">Continuar (Dia <span id="continue-day">1</span>) →</button>
+    </div>
   </section>
 
   <!-- ===================== CHARACTER CREATION ===================== -->
@@ -473,6 +512,15 @@ kbd{ background:var(--green-deep); color:#fff; padding:1px 6px; border-radius:3p
     <div id="game-frame">
       <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
       <canvas id="game" width="960" height="600"></canvas>
+      <div id="touch-controls">
+        <div id="touch-dpad">
+          <button type="button" class="tpad" data-dir="up">▲</button>
+          <button type="button" class="tpad" data-dir="left">◀</button>
+          <button type="button" class="tpad" data-dir="right">▶</button>
+          <button type="button" class="tpad" data-dir="down">▼</button>
+        </div>
+        <button type="button" id="touch-interact">E</button>
+      </div>
       <div id="hud">
         <span class="hud-pill" id="hud-phase">🎒 A caminho da escola</span>
         <span class="hud-pill mono" id="hud-clock">07:10</span>
@@ -560,8 +608,8 @@ kbd{ background:var(--green-deep); color:#fff; padding:1px 6px; border-radius:3p
       </div>
       <div id="dayend-modal" hidden>
         <div class="card">
-          <h2>Fim do Dia 1! 🔔</h2>
-          <div class="sub">Seu primeiro dia de aula acabou. Aqui está o resumo:</div>
+          <h2 id="de-title">Fim do Dia 1! 🔔</h2>
+          <div class="sub">Seu dia de aula acabou. Aqui está o resumo:</div>
           <div class="sheet-section">
             <div class="sheet-label">Frequência</div>
             <div class="fac-row"><span>📋 Faltas</span><span class="v mono" id="de-faltas">0</span></div>
@@ -585,8 +633,9 @@ kbd{ background:var(--green-deep); color:#fff; padding:1px 6px; border-radius:3p
             <div class="sheet-label">Financeiro</div>
             <div class="fac-row"><span>💰 Dinheiro restante</span><span class="v mono" id="de-money">R$0</span></div>
           </div>
-          <p class="sheet-note">Isso encerra o protótipo do Dia 1. Dia 2, boletim e o resto do ano letivo entram nas próximas versões!</p>
-          <button class="btn-primary" id="btn-close-dayend">Continuar explorando</button>
+          <p class="sheet-note">Seu progresso já é salvo automaticamente. Boletim e o resto do ano letivo entram nas próximas versões!</p>
+          <button class="btn-primary" id="btn-next-day">Dormir e começar o próximo dia →</button>
+          <button class="btn-ghost" id="btn-close-dayend" style="margin-top:8px; width:100%;">Continuar explorando hoje</button>
         </div>
       </div>
       <div id="npc-editor-modal" hidden>
@@ -645,6 +694,13 @@ const PAL = {
   tv:'#2b3238', tvGlow:'#6fb8dc', sofa:'#3f7a63', tree:'#3f7a4f', treeLight:'#5b9c5e', trunk:'#6b4a2c',
   uniformPants:'#2c3a46', uniformShoe:'#1c2429',
   counterTop:'#e8d9b0', sink:'#dfeaf0', hoopRing:'#e0592c', hoopBoard:'#f3ecd8',
+  // ---- ala nova: auditório, sala dos professores, diretoria, piscina, ônibus, troféus ----
+  auditorio:'#5a4a72', auditorioAlt:'#52436a',
+  teachers:'#c9a97a', teachersAlt:'#bd9d6d',
+  diretoria:'#a8895a', diretoriaAlt:'#9c7f51',
+  poolWater:'#3fa9c9', poolWaterDeep:'#2f8fac', poolTile:'#e8e2cf', poolTileAlt:'#ddd6c0',
+  busYellow:'#f0b429', busYellowDark:'#d99a1a', busBlack:'#2b2320', busWindow:'#bcd9e8',
+  trophyGold:'#e8c34a', trophyWood:'#7a5a3a', windowGlass:'#bcd9e8', windowFrame:'#efe6d0',
   shadow:'rgba(20,30,20,.35)'
 };
 
@@ -670,7 +726,7 @@ function noise2(x,y,salt){
 /* ============================================================
    MAP
    ============================================================ */
-const COLS = 30, ROWS = 45, TILE_W = 64, TILE_H = 32;
+const COLS = 30, ROWS = 76, TILE_W = 64, TILE_H = 32;
 const WALL_HEIGHT = 74; // tall enough that a wall reads as an actual wall next to a ~90px-tall sprite
 let grid = [];
 function fillGrid(ch){ grid = []; for (let r=0;r<ROWS;r++){ grid.push(new Array(COLS).fill(ch)); } }
@@ -699,19 +755,46 @@ function buildMap(renda){
   room(10,8,11,27,'p');               // paved path from the player's house down to the gate
   grid[16][4]='k'; grid[16][5]='k'; grid[17][4]='k'; grid[17][5]='k'; // quiosque, a little landmark along the way
 
-  // ---- school grounds ----
-  room(8,28,13,28,'G');               // gated entrance
-  room(8,29,21,32,'y');               // pátio (paved schoolyard)
-  room(8,29,14,30,'q');               // quadra — tinted half of the pátio
-  room(2,29,7,32,'n');                // cantina, opening onto the pátio
-  room(22,29,27,32,'b');              // banheiro, opening onto the pátio on the other side
-  room(3,33,26,35,'f');               // entrance hall — wide, flanks the cantina/banheiro too
-  room(10,36,11,41,'f');              // corridor
-  grid[37][9]='W';                    // bebedouro niche
-  grid[37][12]='K';                   // armário niche
-  grid[39][9]='K';                    // armário niche
-  grid[39][12]='K';                   // armário niche
-  room(4,42,23,44,'c');               // classroom
+  /* ---- terreno da escola: um quintal gigante envolvendo o campus inteiro, e o prédio
+     principal agora É de verdade — paredes de fato entre cada ambiente, com portas nos
+     vãos certos, em vez de um único piso aberto pintado com cores diferentes ---- */
+  room(8,28,13,28,'G');               // portão
+  room(0,29,29,45,'.');               // grama por baixo de todo o terreno externo — o "quintal gigante"
+  room(0,29,6,33,'p');                // estacionamento de ônibus escolares, estilo americano
+  room(7,29,22,34,'y');               // pátio principal, logo depois do portão
+  room(23,29,29,33,'y');              // bicicletário (mesmo piso do pátio — ver props pro suporte/placa)
+  room(2,35,9,45,'q');                // quadra poliesportiva
+  room(10,35,11,45,'y');              // calçada central, alinhada com a porta principal do prédio
+  room(12,35,27,45,'z');              // deck/borda da piscina
+  room(14,37,23,42,'x');              // água da piscina — não é andável, ver isWalkable()
+
+  // ---- prédio principal ----
+  room(3,47,26,50,'f');               // hall de entrada / corredor de armários (com o armário de troféus)
+  grid[46][10]='D'; grid[46][11]='D'; // porta principal, alinhada com o corredor central
+  room(10,51,11,70,'f');              // corredor central
+  grid[51][10]='D'; grid[51][11]='D'; // porta do hall pro corredor
+
+  room(3,52,8,58,'c');                // sala de aula 1 — a "funcional", onde a turma do jogador tem aula
+  grid[54][9]='D';
+  room(13,52,25,58,'c');              // sala de aula 2
+
+  grid[54][12]='D';
+
+  room(3,60,8,65,'u');                // sala dos professores
+  grid[62][9]='D';
+  room(13,60,22,68,'n');              // cantina/cafeteria
+  grid[62][12]='D';
+  room(24,60,27,65,'b');              // banheiro, acessado pela cantina
+  grid[62][23]='D';
+
+  room(3,67,8,69,'o');                // diretoria — termina em 69 de propósito, deixando a linha 70
+  grid[69][9]='D';                    // inteira (cols3-8) como parede real separando ela do auditório
+
+  room(3,71,27,75,'a');               // auditório — o corredor desemboca direto nele, num salão amplo
+
+  // corredor de armários: fileiras dos dois lados do hall + o bebedouro
+  [4,5,6,7,8, 18,19,20,21,22].forEach(c=>{ grid[47][c]='K'; });
+  grid[49][15]='W';
 }
 
 /* Every fully-enclosed structure gets a flat roof plane (see drawRoof) that hides
@@ -723,14 +806,17 @@ function buildBuildings(renda){
     { name:'Sua casa',        x0:8,  y0:1, x1:12, y1:5, roofColor: darken(renda==='alta'?PAL.homeHigh:PAL.homeLow,18) },
     { name:'Casa da Larissa', x0:15, y0:1, x1:19, y1:5, roofColor: darken(PAL.house2,18) },
     { name:'Casa do Diego',   x0:22, y0:1, x1:26, y1:5, roofColor: darken(PAL.house3,18) },
-    { name:'Escola',          x0:2,  y0:33,x1:27, y1:44, roofColor: PAL.schoolRoof },
+    { name:'Escola',          x0:2,  y0:46,x1:27, y1:75, roofColor: PAL.schoolRoof },
   ];
 }
 
 function buildProps(renda){
   const props = [
     // ---- casa do Bruno: cantinho de estudo ----
-    {col:2,   row:2,   type:'bed'},
+    // 'bedDecor' (não 'bed') de propósito: só a cama do PRÓPRIO jogador deve ser a interativa
+    // (interactables/triggerFaint/endFight acham a cama via `props.find(p=>p.type==='bed')`,
+    // que pegaria sempre a primeira do array — essa daqui — se todas usassem o mesmo tipo)
+    {col:2,   row:2,   type:'bedDecor'},
     {col:5,   row:1.6, type:'bookshelf'},
     {col:2,   row:4,   type:'homeDesk'},
     {col:2,   row:3.5, type:'deskLamp'},
@@ -743,14 +829,14 @@ function buildProps(renda){
     {col:10,  row:3.1, type:'rug', text:RUG_COLORS.player},
 
     // ---- casa da Larissa: quarto arrumadinho ----
-    {col:16,  row:2,   type:'bed'},
+    {col:16,  row:2,   type:'bedDecor'},
     {col:19,  row:1.8, type:'mirror'},
     {col:19,  row:3.3, type:'wardrobe'},
     {col:17,  row:4,   type:'tv'},
     {col:17,  row:2.7, type:'rug', text:RUG_COLORS.larissa},
 
     // ---- casa do Diego: cheia de bola ----
-    {col:23,  row:2,   type:'bed'},
+    {col:23,  row:2,   type:'bedDecor'},
     {col:26,  row:1.8, type:'ballRack'},
     {col:25,  row:3.3, type:'tv'},
     {col:24,  row:2.7, type:'rug', text:RUG_COLORS.diego},
@@ -769,25 +855,86 @@ function buildProps(renda){
     {col:4.5, row:16.5, type:'kioskStand'},
     {col:4.5, row:15.6, type:'sign', text:'Quiosque'},
 
-    // ---- escola: pátio ----
-    {col:11.5, row:29.7, type:'hoop'},
-    {col:4.5, row:30.5, type:'counter'},
-    {col:4.5, row:29.6, type:'sign', text:'Cantina'},
-    {col:24.5, row:30.5, type:'sink'},
-    {col:24.5, row:29.6, type:'sign', text:'Banheiro'},
-    {col:9,   row:29.4, type:'flagpole'},
-    {col:20,  row:31.5, type:'bench'},
-    {col:12,  row:31.7, type:'trashcan'},
+    // ---- escola: estacionamento de ônibus, estilo americano ----
+    {col:1, row:30.2, type:'busProp'}, {col:3, row:30.2, type:'busProp'}, {col:5, row:30.2, type:'busProp'},
+    {col:3, row:32.4, type:'sign', text:'Embarque e desembarque'},
 
-    // ---- escola: sala de aula ----
-    {col:12, row:42.2, type:'blackboard'},
-    {col:9,  row:42.1, type:'wallclock'},
-    {col:4.3, row:42.6, type:'window'},
-    {col:22.7, row:42.6, type:'window'},
-    {col:22, row:44, type:'plant'},
-    // carteiras dos alunos, duas fileiras — puramente decorativas, ficam perto de onde a IA de rotina os leva
-    {col:7,  row:43.3, type:'desk'}, {col:11, row:43.3, type:'desk'}, {col:16, row:43.3, type:'desk'}, {col:20, row:43.3, type:'desk'},
-    {col:7,  row:44.3, type:'desk'}, {col:11, row:44.3, type:'desk'}, {col:16, row:44.3, type:'desk'}, {col:20, row:44.3, type:'desk'},
+    // ---- escola: bicicletário (área reservada — pedalar ainda não é possível, vem numa próxima atualização) ----
+    {col:26, row:31, type:'bikeRackProp'},
+    {col:26, row:29.6, type:'sign', text:'Bicicletário (em breve)'},
+
+    // ---- escola: pátio principal ----
+    {col:9,   row:29.4, type:'flagpole'},
+    {col:12,  row:33,   type:'bench'}, {col:19, row:33, type:'bench'},
+    {col:15,  row:33.6, type:'trashcan'},
+
+    // ---- escola: quadra poliesportiva ----
+    {col:5.5, row:37, type:'hoop'},
+    {col:3,   row:43, type:'bench'}, {col:8, row:43, type:'bench'},
+
+    // ---- escola: piscina ----
+    {col:13,  row:38, type:'bench'}, {col:25, row:38, type:'bench'},
+    {col:13,  row:36, type:'sign', text:'Piscina'},
+
+    // ---- escola: hall de entrada / corredor de armários ----
+    {col:20, row:48,   type:'trophyCase'},
+    {col:6,  row:48.3, type:'sign', text:'História da escola'},
+    {col:6,  row:47.6, type:'window'}, {col:21, row:47.6, type:'window'},
+
+    // ---- escola: sala de aula 1 (a "funcional") ----
+    {col:3.4, row:55,   type:'blackboard'},
+    {col:4,   row:52.3, type:'wallclock'},
+    {col:2.6, row:55,   type:'window'},
+    // carteiras dos alunos — as três dos nomeados batem exatamente com CLASS_SEATS, mais 3 decorativas
+    {col:6, row:55, type:'desk'}, {col:6, row:55.4, type:'chair'},
+    {col:7, row:57, type:'desk'}, {col:7, row:57.4, type:'chair'},
+    {col:5, row:56, type:'desk'}, {col:5, row:56.4, type:'chair'},
+    {col:7, row:55, type:'desk'}, {col:7, row:55.4, type:'chair'},
+    {col:5, row:54, type:'desk'}, {col:5, row:54.4, type:'chair'},
+    {col:7, row:56, type:'desk'}, {col:7, row:56.4, type:'chair'},
+
+    // ---- escola: sala de aula 2 ----
+    {col:13.4, row:55,   type:'blackboard'},
+    {col:14,   row:52.3, type:'wallclock'},
+    {col:25.6, row:55,   type:'window'},
+    {col:24,   row:57,   type:'plant'},
+    {col:15,row:53,type:'desk'},{col:15,row:53.4,type:'chair'}, {col:18,row:53,type:'desk'},{col:18,row:53.4,type:'chair'},
+    {col:21,row:53,type:'desk'},{col:21,row:53.4,type:'chair'}, {col:15,row:55,type:'desk'},{col:15,row:55.4,type:'chair'},
+    {col:18,row:55,type:'desk'},{col:18,row:55.4,type:'chair'}, {col:21,row:55,type:'desk'},{col:21,row:55.4,type:'chair'},
+    {col:15,row:57,type:'desk'},{col:15,row:57.4,type:'chair'}, {col:18,row:57,type:'desk'},{col:18,row:57.4,type:'chair'},
+
+    // ---- escola: sala dos professores ----
+    {col:4, row:61,   type:'sofa'},
+    {col:6, row:62,   type:'diningTable'},
+    {col:6, row:61.4, type:'chair'}, {col:6, row:62.6, type:'chair'},
+    {col:7, row:64,   type:'bookshelf'},
+    {col:5, row:63,   type:'rug', text:'#7a6a52'},
+    {col:4, row:60.3, type:'sign', text:'Sala dos Professores'},
+
+    // ---- escola: cantina/cafeteria ----
+    {col:14, row:61,   type:'counter'},
+    {col:14, row:60.4, type:'sign', text:'Cantina'},
+    {col:17,row:63,type:'diningTable'}, {col:17,row:62.5,type:'chair'}, {col:17,row:63.5,type:'chair'},
+    {col:20,row:63,type:'diningTable'}, {col:20,row:62.5,type:'chair'}, {col:20,row:63.5,type:'chair'},
+    {col:17,row:66,type:'diningTable'}, {col:17,row:65.5,type:'chair'}, {col:17,row:66.5,type:'chair'},
+    {col:20,row:66,type:'diningTable'}, {col:20,row:65.5,type:'chair'}, {col:20,row:66.5,type:'chair'},
+    {col:21, row:67, type:'plant'},
+
+    // ---- escola: banheiro ----
+    {col:25.5, row:62,   type:'sink'},
+    {col:25.5, row:60.4, type:'sign', text:'Banheiro'},
+
+    // ---- escola: diretoria ----
+    {col:5, row:68,   type:'homeDesk'},
+    {col:5, row:68.6, type:'chair'},
+    {col:7, row:69,   type:'bookshelf'},
+    {col:4, row:67.3, type:'sign', text:'Diretoria'},
+
+    // ---- escola: auditório ----
+    {col:15, row:72,   type:'stage'},
+    {col:15, row:71.3, type:'sign', text:'Auditório'},
+    {col:6,row:74,type:'chair'}, {col:9,row:74,type:'chair'}, {col:12,row:74,type:'chair'}, {col:15,row:74,type:'chair'},
+    {col:18,row:74,type:'chair'}, {col:21,row:74,type:'chair'}, {col:24,row:74,type:'chair'},
   ];
   if (renda === 'alta'){
     props.push({col:11.4, row:1.6, type:'tv'});
@@ -806,7 +953,7 @@ function buildProps(renda){
 function isWalkable(col,row){
   const c = Math.round(col), r = Math.round(row);
   if (c<0||c>=COLS||r<0||r>=ROWS) return false;
-  return grid[r][c] !== '#';
+  return grid[r][c] !== '#' && grid[r][c] !== 'x'; // 'x' = água da piscina, não se anda por cima
 }
 function tileAt(col,row){
   const c = Math.round(col), r = Math.round(row);
@@ -851,19 +998,20 @@ let canvas, ctx;
 
 /* ---- NPCs ---- */
 const WAYPOINTS = [
-  {col:10.5, row:33},
-  {col:10.5, row:34.6},
-  {col:10.5, row:37.5},
-  {col:10.5, row:40.5},
-  {col:10.5, row:43},
+  {col:10.5, row:31},
+  {col:10.5, row:40},
+  {col:10.5, row:48.5},
+  {col:10.5, row:53},
+  {col:7,    row:55},
 ];
 /* ---- school clock: runs continuously and drives which period the HUD reports ---- */
 const SCHEDULE = [
   { startMin: 7*60+10, name:'Antes da aula', icon:'🎒' },
   { startMin: 7*60+30, name:'Entrada',        icon:'🚪' },
-  { startMin: 7*60+40, name:'1ª Aula',        icon:'📚', subject:'Matemática' },
+  { startMin: 7*60+40, name:'1ª Aula',        icon:'📚', subject:'Matemática', location:'classroom' },
   { startMin: 9*60+10, name:'Recreio',        icon:'🍎' },
-  { startMin: 9*60+30, name:'2ª Aula',        icon:'📚', subject:'História' },
+  { startMin: 9*60+30, name:'2ª Aula',        icon:'📚', subject:'História', location:'classroom' },
+  { startMin:10*60+20, name:'Educação Física', icon:'🏃', subject:'Educação Física', location:'quadra' },
   { startMin:11*60+ 0, name:'Apresentação escolar', icon:'🎭' },
   { startMin:11*60+40, name:'Saída',          icon:'🎒' },
 ];
@@ -949,17 +1097,20 @@ function currentSeason(){
 const SECONDS_PER_CALENDAR_DAY = 6; // a whole calendar day every 6 real seconds — fast enough to see months turn
 let calendar = { day:2, month:1, year:2026, weekdayIndex:1 }; // segunda-feira, 2 de fevereiro — a plausible first day of aula
 let calendarAccum = 0;
+function addOneCalendarDay(){
+  calendar.day++;
+  calendar.weekdayIndex = (calendar.weekdayIndex+1) % 7;
+  if (calendar.day > daysInMonth(calendar.month, calendar.year)){
+    calendar.day = 1;
+    calendar.month++;
+    if (calendar.month > 11){ calendar.month = 0; calendar.year++; }
+  }
+}
 function advanceCalendar(dt){
   calendarAccum += dt;
   while (calendarAccum >= SECONDS_PER_CALENDAR_DAY){
     calendarAccum -= SECONDS_PER_CALENDAR_DAY;
-    calendar.day++;
-    calendar.weekdayIndex = (calendar.weekdayIndex+1) % 7;
-    if (calendar.day > daysInMonth(calendar.month, calendar.year)){
-      calendar.day = 1;
-      calendar.month++;
-      if (calendar.month > 11){ calendar.month = 0; calendar.year++; }
-    }
+    addOneCalendarDay();
   }
 }
 function formatDateShort(){ return calendar.day+' '+MONTHS_SHORT[calendar.month]; }
@@ -1057,7 +1208,14 @@ function renderParticles(){
 const GRACE_MINUTES = 5; // arrive up to this many minutes late with zero consequence
 function isInClassroomNow(){
   const c = Math.round(player.col), r = Math.round(player.row);
-  return c>=4 && c<=23 && r>=42 && r<=44; // matches the classroom room() carve in buildMap
+  return c>=3 && c<=8 && r>=52 && r<=58; // matches the sala de aula 1 ("funcional") room() carve in buildMap
+}
+function isAtQuadraNow(){
+  const c = Math.round(player.col), r = Math.round(player.row);
+  return c>=2 && c<=9 && r>=35 && r<=45; // matches the quadra room() carve in buildMap
+}
+function isAtSubjectLocation(period){
+  return period.location === 'quadra' ? isAtQuadraNow() : isInClassroomNow();
 }
 function onSchoolGrounds(){ return Math.round(player.row) >= 28; } // gate row onward counts as campus
 
@@ -1078,27 +1236,59 @@ let dayEndShown = false;
 
 /* ---- cabular aula: skipping outright (leaving campus) dodges the hallway risk above,
    but every unresolved class period becomes a permanent "falta" on the record ---- */
-let attendanceTracker = { periodStart:null, hadSubject:false, subject:null, attended:false, caught:false };
+let attendanceTracker = { periodStart:null, hadSubject:false, subject:null, attended:false, caught:false, excused:false };
+
+// alguns eventos (soneca na cama, desmaio, flagra na diretoria) pulam o relógio pra frente de uma
+// vez só, em vez de deixar o tempo passar frame a frame. Isso pode atravessar uma matéria inteira
+// sem que checkAttendance() nunca a veja como período "atual" — virando um jeito de graça de matar
+// aula sem nenhuma consequência. Toda mudança instantânea de gameClockMinutes deve passar por aqui.
+function advanceGameClock(minutes){
+  const oldMin = gameClockMinutes;
+  gameClockMinutes += minutes;
+  if (!useClockPill) return;
+  const excused = anyModalOpen(); // se o jogo já está travando o jogador (diretoria etc.), não penaliza
+  for (const p of SCHEDULE){
+    if (p.subject && p.startMin > oldMin && p.startMin < gameClockMinutes && !excused){
+      registerFalta(p.subject);
+    }
+  }
+}
 
 function checkAttendance(){
   if (!useClockPill) return;
   const now = currentPeriod(gameClockMinutes);
+  // a checagem de TROCA DE PERÍODO roda sempre, mesmo com modal aberto — senão, se um modal ficar
+  // aberto tempo suficiente pra atravessar um período INTEIRO (não só a borda de um), esse período
+  // nunca é finalizado e a falta correspondente nunca é registrada (bug pior que o que motivou o guard).
   if (attendanceTracker.periodStart !== now.startMin){
-    if (attendanceTracker.periodStart !== null && attendanceTracker.hadSubject && !attendanceTracker.attended && !attendanceTracker.caught){
+    if (attendanceTracker.periodStart !== null && attendanceTracker.hadSubject && !attendanceTracker.attended && !attendanceTracker.caught && !attendanceTracker.excused){
       registerFalta(attendanceTracker.subject);
     }
-    attendanceTracker = { periodStart:now.startMin, hadSubject:!!now.subject, subject:now.subject, attended:false, caught:false };
+    attendanceTracker = { periodStart:now.startMin, hadSubject:!!now.subject, subject:now.subject, attended:false, caught:false, excused:false };
   }
-  if (now.subject && isInClassroomNow()) attendanceTracker.attended = true;
+  // se tem modal/flagra/diálogo aberto, o próprio jogo está impedindo o jogador de se mover — marca
+  // o período como "desculpado" em vez de simplesmente não avaliar nada (ver comentário acima).
+  if (anyModalOpen()){ attendanceTracker.excused = true; return; }
+  if (now.subject && isAtSubjectLocation(now)) attendanceTracker.attended = true;
   if (tardyState.caughtFor === now.startMin) attendanceTracker.caught = true;
 }
 
 function checkDayEnd(){
   if (dayEndShown || !useClockPill) return;
+  if (anyModalOpen()) return; // espera qualquer diálogo/flagra/menu terminar antes de encobrir a tela
   if (currentPeriod(gameClockMinutes).name === 'Saída'){
     dayEndShown = true;
-    setTimeout(openDayEnd, 900);
+    scheduleDayEndOpen();
   }
+}
+function scheduleDayEndOpen(){
+  // revalida no instante de abrir: os 900ms de espera são tempo suficiente pro jogador puxar um
+  // diálogo/briga/editor de NPC depois do agendamento — sem isso, o resumo de fim de dia cobria
+  // esses modais no meio da interação, em vez de esperar eles fecharem.
+  setTimeout(()=>{
+    if (anyModalOpen()){ scheduleDayEndOpen(); return; }
+    openDayEnd();
+  }, 900);
 }
 
 function registerFalta(subject){
@@ -1112,11 +1302,44 @@ function registerFalta(subject){
   }
 }
 
-/* ---- sino da escola: toca (som sintetizado, sem arquivo de áudio) sempre que uma aula começa ---- */
+/* ============================================================
+   ÁUDIO — tudo sintetizado na hora (Web Audio API), sem nenhum
+   arquivo de som. O sino usa isso desde antes; aqui generalizamos
+   pra passos, interação, compras e golpes de combate.
+   ============================================================ */
 let audioCtx = null;
+function ensureAudio(){
+  if (!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+  // alguns navegadores criam o contexto "suspenso" até uma interação real do usuário — sem isso,
+  // qualquer som agendado simplesmente não toca (sem erro nenhum) e fica mudo pra sempre
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+function playTone(freq, dur, type, vol){
+  try{
+    audioCtx = ensureAudio();
+    const t0 = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type || 'sine';
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(vol||0.12, t0);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0+dur);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(t0); osc.stop(t0+dur+0.02);
+  } catch(e){ /* sem suporte a áudio — sem problema, o jogo continua mudo */ }
+}
+function playFootstep(){ playTone(170+Math.random()*50, 0.065, 'square', 0.025); }
+function playBlip(){ playTone(720, 0.08, 'sine', 0.07); }
+function playCoin(){ playTone(1046, 0.09, 'triangle', 0.1); setTimeout(()=>playTone(1318, 0.12, 'triangle', 0.09), 70); }
+function playHit(){ playTone(110, 0.12, 'sawtooth', 0.13); }
+function playWhoosh(){ playTone(300, 0.1, 'sine', 0.05); }
+let lastFootstepPhase = null; // detecta troca de perna no ciclo de passo do jogador pra tocar o som certo
+
+/* ---- sino da escola: toca sempre que uma aula começa ---- */
 function playBell(){
   try{
-    if (!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    audioCtx = ensureAudio();
     const now = audioCtx.currentTime;
     [0, 0.32].forEach((delay,i)=>{
       const osc = audioCtx.createOscillator();
@@ -1142,10 +1365,19 @@ function checkBell(){
   }
 }
 
+/* qualquer tela que devia "pausar" riscos ligados ao relógio (flagra por atraso, etc.) —
+   evita que o jogador seja pego enquanto só está checando a ficha, o editor, ou numa briga/loja */
+function anyModalOpen(){
+  return dialogueOpen || disciplineLock || fainted || sheetOpen() || npcEditorOpen()
+    || !document.getElementById('fight-modal').hidden
+    || !document.getElementById('dayend-modal').hidden
+    || !document.getElementById('schedule-modal').hidden;
+}
+
 function handleTardiness(dt){
-  if (!useClockPill || disciplineLock || dialogueOpen) return;
+  if (!useClockPill || anyModalOpen()) return;
   const now = currentPeriod(gameClockMinutes);
-  if (!now.subject || isInClassroomNow()) return; // recess/free period, or already where you should be
+  if (!now.subject || isAtSubjectLocation(now)) return; // recess/free period, or already where you should be
 
   const minutesLate = gameClockMinutes - now.startMin;
   if (minutesLate <= GRACE_MINUTES){
@@ -1229,7 +1461,7 @@ function sendToPrincipal(reason, moodPenalty){
   dayStats.disciplineCount++;
   showCaption('Diretoria', reason);
   player.stats.mood = clamp01to100(player.stats.mood - moodPenalty);
-  gameClockMinutes += 10;
+  advanceGameClock(10);
   setTimeout(()=>{
     player.col = 12; player.row = 43.6; // sent back into the classroom once the talking-to is over
     disciplineLock = false;
@@ -1283,11 +1515,13 @@ function currentPeriod(minutes){
   return cur;
 }
 
+// cada legenda corresponde ao WAYPOINTS de mesmo índice — atualizado junto com a reconstrução do
+// mapa (antes falava de "saguão"/"sala de música" que não existem mais nos lugares certos)
 const TUTOR_CAPTIONS = [
-  "Bem-vindo(a)! Eu sou o Seu Ivo, coordenador daqui. Esse é o saguão principal — todo mundo passa por aqui de manhã.",
-  "Aqui começa o corredor principal. Fiquem à vontade pra beber água ou dar uma olhada nos armários.",
-  "Reparem nos armários numerados — cada um de vocês vai ter o seu.",
-  "Mais adiante ficam as salas especiais, como música e educação física. A gente conhece com calma outro dia.",
+  "Bem-vindo(a)! Eu sou {name}, coordenador(a) daqui. Esse é o pátio principal — todo mundo passa por aqui antes da aula começar.",
+  "Ali do lado fica a nossa quadra, e mais adiante a piscina — o pessoal usa bastante no recreio e na Educação Física.",
+  "Chegamos no hall de entrada. Fiquem à vontade pra beber água no bebedouro, e reparem nos armários numerados — cada um de vocês vai ter o seu.",
+  "Mais adiante ficam a cantina, a diretoria e até um auditório pra apresentações. A gente conhece tudo com calma outro dia.",
   "E chegamos: essa aqui é a sua sala! Bom primeiro dia de aula. 🎒"
 ];
 
@@ -1309,6 +1543,11 @@ function makeNpc(opts){
     col:0, row:0, offset:{x:0,y:0},
     phase:'pausing', timer: 0.6 + Math.random()*0.6, wpIndex:-1, speed:2.0,
     relationship:0, romance:0,
+    routineMode:false, // true = "graduado" do tour guiado pra rotina por horário (updateScheduleAI).
+                        // Precisa ser uma flag separada de `phase` — updateScheduleAI reaproveita
+                        // `phase` pro próprio estado (stand/moving) e nunca devolve 'done', então usar
+                        // `phase==='done'` como sinal de "já tá na rotina" fazia os dois sistemas
+                        // brigarem pelo NPC a cada frame (e travava o jogo a partir do Dia 2).
   }, opts);
 }
 
@@ -1325,7 +1564,9 @@ Object.keys(QUIZZES).forEach(subject=>{ subjectPools[subject] = makePool(QUIZZES
 
 function resetNpcs(){
   Object.values(FACTIONS).forEach(f=> f.rep = 0);
-  professor = { name:'Profª Célia', role:'professor', skin:'#e0a878', hair:'#2b2018', shirt:'#7a4a6a', col:12, row:43, phase:'stand', relationship:0, romance:0 };
+  // diego e professor nunca passam pelo tour guiado — updateScheduleAI só age quando routineMode
+  // é true, então os dois têm que já nascer nesse modo (senão ficam parados o jogo inteiro).
+  professor = { name:'Profª Célia', role:'professor', skin:'#e0a878', hair:'#2b2018', shirt:'#7a4a6a', col:4, row:53, phase:'stand', routineMode:true, relationship:0, romance:0 };
   tutor = makeNpc({
     name:'Seu Ivo', role:'tutor', skin:'#e0a878', hair:'#2b2018', shirt:'#123f34', col:10.5, row:28, offset:{x:0,y:0}
   });
@@ -1352,7 +1593,7 @@ function resetNpcs(){
     ])
   });
   diego = makeNpc({
-    name:'Diego', role:'novato', faction:'atletas', skin:'#e0a878', hair:'#5c3a22', shirt:'#3e6fa8', col:11, row:29.8, offset:{x:0,y:0}, phase:'stand',
+    name:'Diego', role:'novato', faction:'atletas', skin:'#e0a878', hair:'#5c3a22', shirt:'#3e6fa8', col:11, row:29.8, offset:{x:0,y:0}, phase:'stand', routineMode:true,
     combat:{ forca:7, agilidade:7, resistencia:6 },
     getLine: makeLinePicker([
       "Bora jogar uma bola mais tarde?",
@@ -1376,8 +1617,11 @@ const AMBIENT_NPCS = [
   { name:'Rafael',    skin:'#f4c9a0', hair:'#5c3a22', shirt:'#6fb8dc',                               col:8,   row:21,   activity:'idle', wanderRadius:1.8 },
   { name:'Camila',    skin:'#b97a4e', hair:'#2b2018', shirt:'#c25a86',                               col:15.4,row:30,   activity:'chat', wanderRadius:0.6 },
   { name:'Thiago',    skin:'#e0a878', hair:'#3a2a55', shirt:'#3e6fa8',                               col:16.4,row:30,   activity:'chat', wanderRadius:0.6 },
-  { name:'Enzo',      skin:'#8a5a35', hair:'#5c3a22', shirt:'#b8492c',                               col:10.3,row:37,   activity:'drink' },
+  { name:'Enzo',      skin:'#8a5a35', hair:'#5c3a22', shirt:'#b8492c',                               col:16,  row:49,   activity:'drink' }, // agora perto do bebedouro novo, dentro do hall
   { name:'Gabriel',   skin:'#f4c9a0', hair:'#2b2018', shirt:'#1f6f5c', row:34, col:17, colA:17, colB:20, dir:1, speed:1.1, activity:'patrol' },
+  // merendeira da cantina — fica atrás do balcão o dia todo, mas a cantina só "funciona" (vende
+  // comida de verdade) na hora certa, ver o gate de horário dentro de handleInteractKey/type cantina
+  { name:'Dona Marta', skin:'#c9915a', hair:'#5c3a22', shirt:'#ece6d6', pants:'#c9a15a', col:14, row:60.6, activity:'serve', wanderRadius:0.4 },
 ];
 
 function updateAmbients(dt){
@@ -1416,11 +1660,16 @@ function updateAmbients(dt){
 function drawActivityProp(n, sx, sy, t){
   switch(n.activity){
     case 'sweep': {
-      const angle = Math.sin(t/260)*0.45;
-      ctx.save(); ctx.translate(sx+9, sy-16); ctx.rotate(angle);
-      ctx.strokeStyle = '#8a6a3a'; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(14,9); ctx.stroke();
-      ctx.fillStyle = '#c9a15a'; ctx.fillRect(11,6,9,6);
+      // cabo na altura de um zelador de verdade (chega do ombro até o chão) — antes media uns
+      // 20px, praticamente um brinquedo perto do personagem; agora tem o comprimento certo.
+      const wobble = Math.sin(t/260)*0.12;
+      ctx.save(); ctx.translate(sx+7, sy-48); ctx.rotate(0.5+wobble);
+      ctx.strokeStyle = '#8a6a3a'; ctx.lineWidth = 3.4;
+      ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0,52); ctx.stroke(); // cabo de madeira
+      ctx.fillStyle = '#c9a15a';
+      ctx.beginPath(); ctx.moveTo(-7,48); ctx.lineTo(9,48); ctx.lineTo(6,63); ctx.lineTo(-4,63); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = 'rgba(90,60,20,.4)'; ctx.lineWidth = 1;
+      for (let i=-5;i<=7;i+=3){ ctx.beginPath(); ctx.moveTo(i,48); ctx.lineTo(i*0.55,63); ctx.stroke(); } // cerdas individuais
       ctx.restore();
       break;
     }
@@ -1445,6 +1694,14 @@ function drawActivityProp(n, sx, sy, t){
     case 'chat':
       drawChatBubble(sx, sy, t, n.col);
       break;
+    case 'serve': {
+      // concha de servir balançando de um lado pro outro, como quem mexe a panela
+      const swing = Math.sin(t/380)*6;
+      ctx.strokeStyle = '#8a8a8a'; ctx.lineWidth = 2.4;
+      ctx.beginPath(); ctx.moveTo(sx+6, sy-32); ctx.lineTo(sx+10+swing*0.4, sy-24); ctx.stroke();
+      ctx.beginPath(); ctx.arc(sx+10+swing*0.4, sy-22, 3, 0, Math.PI*2); ctx.fillStyle = '#c9c3b3'; ctx.fill();
+      break;
+    }
   }
 }
 
@@ -1495,8 +1752,11 @@ function livelyFacing(npc){
    INIT / SCREEN FLOW
    ============================================================ */
 const SKIN_TONES = ['#f4c9a0','#e0a878','#b97a4e','#8a5a35','#5c3a22'];
-const HAIR_COLORS = ['#2b2018','#5c3a22','#8a5a35','#c9c3b3','#3a2a55','#b8492c'];
-const SHIRT_COLORS = ['#1f6f5c','#ec9a2e','#b8492c','#6fb8dc','#ece6d6'];
+const HAIR_COLORS = ['#2b2018','#5c3a22','#8a5a35','#c9c3b3','#3a2a55','#b8492c','#8f8f8f'];
+// as cores extras no fim (#123f34 até #7a6a52) são as camisas "de fábrica" de tutor/professor/
+// novatoB/diego/NPCs ambiente — sem elas na paleta, o editor de NPC não conseguia marcar nenhum
+// swatch como ativo pra esses personagens (a cor existia, só não tinha botão correspondente).
+const SHIRT_COLORS = ['#1f6f5c','#ec9a2e','#b8492c','#6fb8dc','#ece6d6','#123f34','#7a4a6a','#c25a86','#3e6fa8','#5a6a4a','#7a6a52'];
 
 function buildSwatches(rowId, colors, key, onPick){
   const row = document.getElementById(rowId);
@@ -1537,6 +1797,18 @@ function init(){
 
   document.getElementById('btn-start').addEventListener('click', ()=> showScreen('screen-char'));
 
+  const existingSave = loadSaveData();
+  if (existingSave && existingSave.player){
+    document.getElementById('continue-row').hidden = false;
+    document.getElementById('continue-day').textContent = existingSave.player.dayNumber || 1;
+  }
+  document.getElementById('btn-continue').addEventListener('click', e=>{
+    // desabilita já no clique: sem isso, um clique-duplo dispara continueGame()/startGame() duas
+    // vezes e agenda DOIS loops requestAnimationFrame em paralelo, dobrando a velocidade do relógio.
+    e.currentTarget.disabled = true;
+    continueGame();
+  });
+
   document.getElementById('in-name').addEventListener('input', e=>{
     player.name = e.target.value.trim();
     drawPreviewCanvas();
@@ -1559,7 +1831,10 @@ function init(){
   });
   document.querySelector('.income-card[data-income="baixa"]').classList.add('active');
 
-  document.getElementById('btn-start-day').addEventListener('click', startGame);
+  document.getElementById('btn-start-day').addEventListener('click', e=>{
+    e.currentTarget.disabled = true; // ver comentário no listener de btn-continue
+    startGame();
+  });
 
   document.getElementById('btn-close-schedule').addEventListener('click', ()=>{
     document.getElementById('schedule-modal').hidden = true;
@@ -1571,8 +1846,37 @@ function init(){
   document.getElementById('btn-close-dayend').addEventListener('click', ()=>{
     document.getElementById('dayend-modal').hidden = true;
   });
+  document.getElementById('btn-next-day').addEventListener('click', e=>{
+    e.currentTarget.disabled = true; // ver comentário no listener de btn-continue; reabilitado em openDayEnd()
+    startNextDay();
+  });
   document.getElementById('btn-npc-editor').addEventListener('click', openNpcEditor);
   document.getElementById('btn-close-npc-editor').addEventListener('click', closeNpcEditor);
+
+  // controles touch: os botões só setam/limpam as mesmas KEYS[] que o teclado usa
+  const DIR_KEY = { up:'arrowup', down:'arrowdown', left:'arrowleft', right:'arrowright' };
+  document.querySelectorAll('.tpad').forEach(btn=>{
+    const k = DIR_KEY[btn.dataset.dir];
+    const press = (e)=>{ e.preventDefault(); KEYS[k] = true; };
+    const release = (e)=>{ e.preventDefault(); KEYS[k] = false; };
+    btn.addEventListener('touchstart', press, {passive:false});
+    btn.addEventListener('touchend', release, {passive:false});
+    btn.addEventListener('touchcancel', release, {passive:false});
+    btn.addEventListener('mousedown', press);
+    btn.addEventListener('mouseup', release);
+    btn.addEventListener('mouseleave', release);
+  });
+  const touchInteract = document.getElementById('touch-interact');
+  let lastTouchInteract = 0; // alguns navegadores disparam 'click' sintético depois do 'touchstart' —
+                              // sem isso, um único toque podia chamar handleInteractKey() duas vezes
+  const safeInteract = ()=>{
+    const now = performance.now();
+    if (now - lastTouchInteract < 350) return;
+    lastTouchInteract = now;
+    handleInteractKey();
+  };
+  touchInteract.addEventListener('touchstart', e=>{ e.preventDefault(); safeInteract(); }, {passive:false});
+  touchInteract.addEventListener('click', safeInteract);
 
   canvas = document.getElementById('game');
   ctx = canvas.getContext('2d');
@@ -1594,7 +1898,9 @@ function sheetOpen(){ return !document.getElementById('sheet-modal').hidden; }
 function openSheet(){
   if (document.getElementById('screen-game').hidden) return; // only meaningful mid-game
   if (!document.getElementById('fight-modal').hidden) return; // don't pause mid-fight to check stats
+  if (!document.getElementById('dayend-modal').hidden) return; // idem pro resumo de fim de dia
   if (npcEditorOpen()) return;
+  if (dialogueOpen || disciplineLock) return; // não pode encobrir um diálogo/flagra que só fecha pelos próprios botões
   buildAttrGrid();
   updateRelationshipPanels();
   document.getElementById('sheet-modal').hidden = false;
@@ -1604,7 +1910,7 @@ function updateRelationshipPanels(){
   const relList = document.getElementById('rel-list');
   relList.innerHTML = '';
   [novatoA, novatoB, diego].forEach(npc=>{
-    const tier = npc.romance >= 70 ? { label:'Namorado(a)', emoji:'💜' } : relTier(npc.relationship);
+    const tier = relationshipTier(npc);
     const row = document.createElement('div');
     row.className = 'rel-row';
     row.innerHTML = '<span>'+npc.name+'</span><span class="tier">'+tier.emoji+' '+tier.label+'</span>';
@@ -1642,7 +1948,8 @@ let npcEditorSelectedKey = null;
 function npcEditorOpen(){ return !document.getElementById('npc-editor-modal').hidden; }
 function openNpcEditor(){
   if (document.getElementById('screen-game').hidden) return;
-  if (!document.getElementById('fight-modal').hidden || dialogueOpen) return;
+  if (!document.getElementById('fight-modal').hidden || dialogueOpen || disciplineLock) return;
+  if (!document.getElementById('dayend-modal').hidden) return;
   const listEl = document.getElementById('npc-editor-list');
   listEl.innerHTML = '';
   getAllNpcRefs().forEach(item=>{
@@ -1733,10 +2040,11 @@ function updateStatBars(){
   document.getElementById('sheet-weather').textContent = WEATHER_DEFS[weather.id].icon+' '+WEATHER_DEFS[weather.id].label;
 }
 
-function startGame(){
+function startGame(restoreData){
   buildMap(player.renda);
   const props = buildProps(player.renda);
   interactables = [];
+  lockerCounter = 12; // senão os armários (sempre os mesmos 3) ganham números novos a cada dia
   const lockerNums = {};
   for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++){
     if (grid[r][c]==='W') interactables.push({type:'fountain', col:c, row:r});
@@ -1748,34 +2056,156 @@ function startGame(){
   if (counterProp) interactables.push({type:'cantina', col:counterProp.col, row:counterProp.row});
   const kioskProp = props.find(p=>p.type==='kioskStand');
   if (kioskProp) interactables.push({type:'kiosk', col:kioskProp.col, row:kioskProp.row});
+  const hoopProp = props.find(p=>p.type==='hoop');
+  if (hoopProp) interactables.push({type:'hoop', col:hoopProp.col, row:hoopProp.row});
+  const trophyProp = props.find(p=>p.type==='trophyCase');
+  if (trophyProp) interactables.push({type:'trophy', col:trophyProp.col, row:trophyProp.row});
   window.__props = props;
   window.__lockerNums = lockerNums;
   window.__buildings = buildBuildings(player.renda);
 
   player.col = 10; player.row = 2.5; player.facing='down';
-  player.stats = { health:100, energy:100, mood:80 };
-  player.money = player.renda === 'alta' ? 35 : 8; // mesada do dia, ligada à renda da família
-  player.faltas = 0;
+  if (!restoreData){
+    player.stats = { health:100, energy:100, mood:80 };
+    player.money = player.renda === 'alta' ? 35 : 8; // mesada do dia, ligada à renda da família
+    player.dayNumber = 1;
+    calendar = { day:2, month:1, year:2026, weekdayIndex:1 };
+    calendarAccum = 0;
+  } else {
+    // merge campo a campo (não substitui o objeto inteiro): um save antigo sem `weekdayIndex`,
+    // por exemplo, deixaria WEEKDAYS[NaN] undefined na ficha do aluno pro resto da sessão.
+    calendar = Object.assign({}, calendar, restoreData.calendar);
+    player.stats.energy = 100; player.stats.mood = Math.max(player.stats.mood, 70); // uma noite de sono ajuda
+  }
+  player.faltas = 0; // faltas são por dia — sempre reinicia, mesmo virando o dia (senão nunca mais zera)
+
+  // todo estado de "flagra"/diálogo/travamento precisa recomeçar zerado a cada dia — senão o
+  // relógio (que se repete igual todo dia) fica marcando gente já flagrada como "imune" pra sempre,
+  // ou pior, o jogo pode começar o dia novo já travado se algo tivesse ficado aberto no anterior
+  disciplineLock = false; catchTimer = 0; dialogueOpen = false; pendingFightCatch = false;
+  tardyState.notifiedStart = null; tardyState.notifiedGrace = null; tardyState.caughtFor = null;
+  document.getElementById('dialogue').hidden = true;
+  document.getElementById('sheet-modal').hidden = true;
+  document.getElementById('npc-editor-modal').hidden = true;
+  document.getElementById('fight-modal').hidden = true;
+  document.getElementById('schedule-modal').hidden = true;
+  clearTimeout(captionTimer); document.getElementById('caption').hidden = true;
+  clearTimeout(toastTimer); document.getElementById('toast').hidden = true;
+
   attendanceTracker = { periodStart:null, hadSubject:false, subject:null, attended:false, caught:false };
   lastBellPeriodStart = null;
   Object.keys(dayStats).forEach(k=> dayStats[k]=0);
   dayEndShown = false;
-  calendar = { day:2, month:1, year:2026, weekdayIndex:1 };
-  calendarAccum = 0;
   weather = { id:'brisa', timer:15 };
   updateMoneyHud();
   gamePhase = 'YARD'; tourStarted = false; scheduleShown = false; fainted = false;
   gameClockMinutes = SCHEDULE[0].startMin; useClockPill = false;
   buildAttrGrid();
   resetNpcs();
+  if (restoreData){
+    if (restoreData.npcs) applyNpcSave(restoreData.npcs);
+    if (Array.isArray(restoreData.ambient)) applyAmbientSave(restoreData.ambient);
+    if (restoreData.factions) Object.keys(restoreData.factions).forEach(k=>{ if (FACTIONS[k]) FACTIONS[k].rep = restoreData.factions[k]; });
+  }
 
   document.getElementById('hud-name').textContent = player.name;
   document.getElementById('hud-swatch').style.background = player.shirt;
-  setPhasePill('🎒 A caminho da escola');
-  showToast('Setas/WASD pra andar, E pra interagir, Tab pra ver sua ficha.', 4600);
+
+  if ((player.dayNumber||1) > 1){
+    // já viveu o "primeiro dia" — pula o tour guiado e já libera a rotina de todo mundo
+    tourStarted = true; gamePhase = 'CLASSROOM_DONE'; useClockPill = true;
+    tutor.routineMode = true; novatoA.routineMode = true; novatoB.routineMode = true;
+    setPhasePill('🎒 Dia '+player.dayNumber+' de aula');
+    showToast('Dia '+player.dayNumber+' começando! Você já conhece o caminho — vá pra escola quando quiser.', 4600);
+  } else {
+    setPhasePill('🎒 A caminho da escola');
+    showToast('Setas/WASD pra andar, E pra interagir, Tab pra ver sua ficha.', 4600);
+  }
 
   showScreen('screen-game');
   requestAnimationFrame(loop);
+}
+
+/* ============================================================
+   SALVAR/CONTINUAR — autosave em localStorage. Guarda identidade,
+   status, relações e customizações; a posição/relógio do dia sempre
+   recomeça do zero (você "acorda" em casa), pra não depender de
+   restaurar estado transitório frágil (diálogos abertos, rotas, etc).
+   ============================================================ */
+const SAVE_KEY = 'primeiroSinal_save_v1';
+function serializeSave(){
+  return {
+    v: 1,
+    player: {
+      name:player.name, skin:player.skin, hair:player.hair, shirt:player.shirt, hat:player.hat,
+      renda:player.renda, fam1:player.fam1, fam2:player.fam2,
+      stats:player.stats, attrs:player.attrs, money:player.money, faltas:player.faltas,
+      dayNumber:player.dayNumber||1,
+    },
+    calendar,
+    factions: Object.fromEntries(Object.entries(FACTIONS).map(([k,f])=>[k,f.rep])),
+    npcs: {
+      novatoA:{ name:novatoA.name, skin:novatoA.skin, hair:novatoA.hair, shirt:novatoA.shirt, relationship:novatoA.relationship, romance:novatoA.romance },
+      novatoB:{ name:novatoB.name, skin:novatoB.skin, hair:novatoB.hair, shirt:novatoB.shirt, relationship:novatoB.relationship, romance:novatoB.romance },
+      diego:{ name:diego.name, skin:diego.skin, hair:diego.hair, shirt:diego.shirt, relationship:diego.relationship, romance:diego.romance },
+      tutor:{ name:tutor.name, skin:tutor.skin, hair:tutor.hair, shirt:tutor.shirt },
+      professor:{ name:professor.name, skin:professor.skin, hair:professor.hair, shirt:professor.shirt },
+    },
+    ambient: AMBIENT_NPCS.map(n=>({ name:n.name, skin:n.skin, hair:n.hair, shirt:n.shirt })),
+  };
+}
+function applyNpcSave(data){
+  // por campo, não em bloco: um save de formato mais antigo/incompleto não pode apagar uma cor
+  // válida com `undefined` (o que quebraria o desenho do sprite silenciosamente).
+  [['novatoA',novatoA],['novatoB',novatoB],['diego',diego],['tutor',tutor],['professor',professor]].forEach(([key,ref])=>{
+    const d = data[key]; if (!d) return;
+    if (d.name !== undefined) ref.name = d.name;
+    if (d.skin !== undefined) ref.skin = d.skin;
+    if (d.hair !== undefined) ref.hair = d.hair;
+    if (d.shirt !== undefined) ref.shirt = d.shirt;
+    if (d.relationship !== undefined) ref.relationship = d.relationship;
+    if (d.romance !== undefined) ref.romance = d.romance;
+  });
+}
+function applyAmbientSave(list){
+  list.forEach((d,i)=>{
+    if (!AMBIENT_NPCS[i] || !d) return;
+    if (d.name !== undefined) AMBIENT_NPCS[i].name = d.name;
+    if (d.skin !== undefined) AMBIENT_NPCS[i].skin = d.skin;
+    if (d.hair !== undefined) AMBIENT_NPCS[i].hair = d.hair;
+    if (d.shirt !== undefined) AMBIENT_NPCS[i].shirt = d.shirt;
+  });
+}
+function loadSaveData(){
+  try{ const raw = localStorage.getItem(SAVE_KEY); return raw ? JSON.parse(raw) : null; }
+  catch(e){ return null; }
+}
+let saveTimer = 0;
+function saveGame(){
+  try{ localStorage.setItem(SAVE_KEY, JSON.stringify(serializeSave())); }
+  catch(e){ /* localStorage indisponível (ex: aba privada) — sem problema, só não salva */ }
+}
+function continueGame(){
+  const save = loadSaveData();
+  if (!save) return;
+  const sp = save.player || {};
+  Object.assign(player, sp);
+  // stats/attrs são sub-objetos: o Object.assign acima TROCA a referência inteira pela do save.
+  // Se o save vier de uma versão mais antiga do jogo, sem algum campo que a versão atual espera
+  // (ex: um atributo novo), esse campo fica `undefined` — e como tudo aqui passa por contas
+  // matemáticas (clamp, dano de combate), um `undefined` vira NaN e gruda pra sempre. Por isso
+  // fazemos merge campo a campo sobre os valores padrão, não substituição do objeto inteiro.
+  player.stats = Object.assign({ health:100, energy:100, mood:80 }, sp.stats);
+  player.attrs = Object.assign({ forca:5, agilidade:5, inteligencia:5, resistencia:5, carisma:5 }, sp.attrs);
+  startGame(save);
+}
+function startNextDay(){
+  document.getElementById('dayend-modal').hidden = true;
+  addOneCalendarDay();
+  player.dayNumber = (player.dayNumber||1) + 1;
+  const snapshot = serializeSave();
+  saveGame();
+  startGame(snapshot);
 }
 
 /* ============================================================
@@ -1813,6 +2243,21 @@ function drawTileTexture(ch,cx,cy,col,row){
       ctx.fillStyle = PAL.grassTuft;
       ctx.fillRect(tx, ty, 2, 3);
     }
+    // um toque sazonal espalhado pelo gramado inteiro — flor na primavera/verão, folha seca no
+    // outono — só numa fração dos tiles (n(20) decide isso) pra não virar um tapete poluído
+    const season = currentSeason();
+    if (n(20) > 0.82){
+      const fx = cx + (n(21)-0.5)*TILE_W*0.55, fy = cy + (n(22)-0.5)*TILE_H*0.55;
+      if (season.name==='Outono'){
+        ctx.fillStyle = season.particleColor; ctx.globalAlpha = .8;
+        ctx.beginPath(); ctx.ellipse(fx,fy,2.4,1.6,n(23)*Math.PI,0,Math.PI*2); ctx.fill();
+      } else if (season.name!=='Inverno'){
+        ctx.fillStyle = season.name==='Primavera' ? '#f6c9de' : '#f2d98a';
+        [0,1.25,2.5,3.75].forEach(a=>{ ctx.beginPath(); ctx.ellipse(fx+Math.cos(a)*1.6, fy+Math.sin(a)*1.6, 1.1, 0.9, 0, 0, Math.PI*2); ctx.fill(); });
+        ctx.fillStyle = '#e8c34a'; ctx.beginPath(); ctx.arc(fx,fy,0.9,0,Math.PI*2); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
   } else if (ch==='p'){
     for (let i=0;i<2;i++){
       const tx = cx + (n(i+3)-0.5)*TILE_W*0.6, ty = cy + (n(i+13)-0.5)*TILE_H*0.6;
@@ -1840,6 +2285,20 @@ function drawTileTexture(ch,cx,cy,col,row){
       ctx.strokeStyle = 'rgba(0,0,0,.12)'; ctx.lineWidth = 1;
       ctx.beginPath(); ctx.moveTo(tx-4,ty); ctx.lineTo(tx+4,ty); ctx.stroke();
     }
+  } else if (ch==='a' || ch==='u' || ch==='o'){
+    // tacão de madeira — auditório, sala dos professores e diretoria têm o mesmo piso mais nobre
+    ctx.strokeStyle = 'rgba(0,0,0,.16)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(cx-TILE_W/2, cy+(n(20)-0.5)*6); ctx.lineTo(cx+TILE_W/2, cy+(n(21)-0.5)*6); ctx.stroke();
+  } else if (ch==='x'){
+    // água da piscina: brilho ondulante animado, igual ao bebedouro mas cobrindo o tile inteiro
+    const shimmer = Math.sin(performance.now()/700 + col*1.3 + row*0.7);
+    ctx.globalAlpha = 0.18 + shimmer*0.1;
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.4;
+    ctx.beginPath(); ctx.moveTo(cx-TILE_W*0.28, cy+shimmer*2); ctx.lineTo(cx+TILE_W*0.28, cy-shimmer*2); ctx.stroke();
+    ctx.globalAlpha = 1;
+  } else if (ch==='z'){
+    ctx.strokeStyle = PAL.hallGrout; ctx.globalAlpha = .4; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(cx-TILE_W/2,cy); ctx.lineTo(cx+TILE_W/2,cy); ctx.stroke();
   }
   ctx.restore();
 }
@@ -1903,13 +2362,28 @@ function tileColor(ch,col,row){
     case 'k': return checker?PAL.kiosk:PAL.kioskAlt;
     case 'D': return PAL.doorway;
     case 'G': return PAL.gate;
+    case 'a': return checker?PAL.auditorio:PAL.auditorioAlt;
+    case 'u': return checker?PAL.teachers:PAL.teachersAlt;
+    case 'o': return checker?PAL.diretoria:PAL.diretoriaAlt;
+    case 'z': return checker?PAL.poolTile:PAL.poolTileAlt; // calçada/borda da piscina
+    case 'x': return checker?PAL.poolWater:PAL.poolWaterDeep; // água da piscina — não andável, ver isWalkable
     default: return PAL.grass;
   }
 }
 
 const RUG_COLORS = { player:'#b8492c', bruno:'#3e6fa8', larissa:'#c25a86', diego:'#1f6f5c' };
 
+// tudo que é plano ou fica preso numa parede não precisa de sombra própria — o resto (móveis,
+// bancos, ônibus etc.) sim, e antes NENHUM prop tinha isso: pareciam adesivos coladas no chão,
+// sem nenhum contato visual com o piso. Esse era um dos maiores motivos do mapa parecer "chapado".
+const NO_SHADOW_PROPS = new Set(['rug','sign','window','wallclock','blackboard','mirror']);
 function drawProp(cx,cy,type,extra){
+  if (!NO_SHADOW_PROPS.has(type)){
+    ctx.beginPath();
+    ctx.ellipse(cx, cy+2, 15, 5.5, 0, 0, Math.PI*2);
+    ctx.fillStyle = PAL.shadow;
+    ctx.fill();
+  }
   switch(type){
     case 'rug':
       ctx.save();
@@ -1952,17 +2426,29 @@ function drawProp(cx,cy,type,extra){
     }
     case 'homeDesk':
       drawBlock(cx,cy,16,'#c9a15a','#8a6a3a','#a37c45');
+      ctx.strokeStyle = 'rgba(0,0,0,.18)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(cx-9,cy-19); ctx.lineTo(cx+9,cy-19); ctx.stroke(); // veio da madeira no tampo
       break;
     case 'deskLamp':
       ctx.fillStyle = '#5c5c5c'; ctx.fillRect(cx-1, cy-24, 2, 14);
       ctx.beginPath(); ctx.moveTo(cx-6,cy-24); ctx.lineTo(cx+6,cy-24); ctx.lineTo(cx+3,cy-32); ctx.lineTo(cx-3,cy-32); ctx.closePath();
       ctx.fillStyle = '#f2d98a'; ctx.fill();
+      ctx.globalAlpha = 0.25 + Math.sin(performance.now()/450)*0.08; // luminária acesa piscando de leve
+      ctx.beginPath(); ctx.arc(cx, cy-28, 10, 0, Math.PI*2); ctx.fillStyle = '#ffe9a8'; ctx.fill();
+      ctx.globalAlpha = 1;
       break;
     case 'diningTable':
       drawBlock(cx,cy,18,'#c9a15a','#8a6a3a','#a37c45');
+      ctx.strokeStyle = 'rgba(0,0,0,.18)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(cx-9,cy-22); ctx.lineTo(cx+9,cy-22); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx-6,cy-19); ctx.lineTo(cx+6,cy-19); ctx.stroke();
       break;
     case 'chair':
       drawBlock(cx,cy,14,'#a37c45','#6b4a2c','#7c5934');
+      // encosto — sem isso era só um banquinho baixo, difícil de ler como "cadeira de verdade"
+      ctx.fillStyle = '#6b4a2c'; ctx.fillRect(cx-6, cy-30, 3, 16);
+      ctx.strokeStyle = 'rgba(255,255,255,.12)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(cx-4,cy-14); ctx.lineTo(cx+7,cy-14); ctx.stroke();
       break;
     case 'mirror':
       ctx.fillStyle = '#8a6a3a'; ctx.fillRect(cx-7, cy-46, 14, 34);
@@ -1985,19 +2471,31 @@ function drawProp(cx,cy,type,extra){
     }
     case 'bench':
       drawBlock(cx,cy,10,'#a37c45','#6b4a2c','#7c5934');
+      // ripas de madeira — o bloco sozinho lia como um bloquinho genérico, não um banco de praça
+      ctx.strokeStyle = 'rgba(0,0,0,.22)'; ctx.lineWidth = 1;
+      for (let i=-6;i<=6;i+=4){ ctx.beginPath(); ctx.moveTo(cx+i,cy-19); ctx.lineTo(cx+i,cy-10); ctx.stroke(); }
       break;
     case 'mailbox':
       ctx.fillStyle = '#6b4a2c'; ctx.fillRect(cx-1, cy-6, 2, 6);
       ctx.fillStyle = '#3e6fa8'; ctx.fillRect(cx-4, cy-20, 8, 14);
       ctx.beginPath(); ctx.ellipse(cx, cy-20, 4, 4, 0, Math.PI, 0); ctx.fill();
+      ctx.fillStyle = '#c9302c'; ctx.fillRect(cx+3, cy-19, 1.5, 5); // bandeirinha vermelha da correspondência
+      ctx.fillStyle = 'rgba(255,255,255,.4)'; ctx.fillRect(cx-3, cy-18, 1, 10); // brilho lateral na chapa
       break;
     case 'trashcan':
       drawBlock(cx,cy,14,'#6c7480','#4a505a','#5c6470');
+      ctx.strokeStyle = 'rgba(255,255,255,.15)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(cx-7,cy-11); ctx.lineTo(cx-7,cy-3); ctx.stroke(); // aro metálico da tampa
+      ctx.beginPath(); ctx.ellipse(cx, cy-14, 7, 2.4, 0, 0, Math.PI*2); ctx.stroke();
       break;
     case 'flagpole':
       ctx.fillStyle = '#8a8a8a'; ctx.fillRect(cx-1, cy-70, 2, 70);
-      ctx.fillStyle = '#1f6f5c'; ctx.fillRect(cx+1, cy-70, 16,10);
+      // a bandeira balança de leve com o vento, em vez de ficar esticada e imóvel
+      { const sway = Math.sin(performance.now()/380)*3;
+        ctx.beginPath(); ctx.moveTo(cx+1,cy-70); ctx.lineTo(cx+17+sway,cy-68); ctx.lineTo(cx+15+sway*0.6,cy-60); ctx.lineTo(cx+1,cy-60); ctx.closePath();
+        ctx.fillStyle = '#1f6f5c'; ctx.fill(); }
       break;
+    case 'bedDecor': // mesma arte da cama do jogador, só que só decorativa (ver buildProps)
     case 'bed':
       drawBlock(cx,cy,10,PAL.bedSheet,PAL.bed,PAL.bed);
       ctx.fillStyle = PAL.bedStripe;
@@ -2019,11 +2517,20 @@ function drawProp(cx,cy,type,extra){
       break;
     case 'tree': {
       const season = currentSeason();
+      const sway = Math.sin(performance.now()/900 + cx*0.02)*1.6; // copa balança bem de leve com o vento
       ctx.fillStyle = PAL.trunk;
       ctx.fillRect(cx-3, cy-22, 6, 22);
-      ctx.beginPath(); ctx.ellipse(cx, cy-30, 16, 14, 0, 0, Math.PI*2);
+      ctx.strokeStyle = 'rgba(0,0,0,.25)'; ctx.lineWidth = 1; // casca — sem isso era um retângulo marrom liso
+      ctx.beginPath(); ctx.moveTo(cx-1,cy-20); ctx.lineTo(cx-1,cy-3); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx+1.5,cy-18); ctx.lineTo(cx+1.5,cy-6); ctx.stroke();
+      // copa em três aglomerados sobrepostos, em vez de uma única elipse chapada — dá volume de verdade
+      ctx.beginPath(); ctx.ellipse(cx+sway*0.4, cy-28, 15, 13, 0, 0, Math.PI*2);
+      ctx.fillStyle = darken(season.tree,10); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(cx-7+sway, cy-34, 9, 8, 0, 0, Math.PI*2);
       ctx.fillStyle = season.tree; ctx.fill();
-      ctx.beginPath(); ctx.ellipse(cx-6, cy-35, 8, 6, 0, 0, Math.PI*2);
+      ctx.beginPath(); ctx.ellipse(cx+7+sway*0.7, cy-31, 8, 7, 0, 0, Math.PI*2);
+      ctx.fillStyle = season.tree; ctx.fill();
+      ctx.beginPath(); ctx.ellipse(cx-5+sway, cy-37, 6, 5, 0, 0, Math.PI*2);
       ctx.fillStyle = season.treeLight; ctx.fill();
       break;
     }
@@ -2040,6 +2547,10 @@ function drawProp(cx,cy,type,extra){
       drawBlock(cx,cy,24,PAL.locker,'#5c6470','#727a86');
       ctx.fillStyle = PAL.lockerDoor;
       ctx.fillRect(cx-6, cy-30, 4, 20);
+      // grade de ventilação e a fechadura — sem isso era só um bloco cinza liso
+      ctx.strokeStyle = 'rgba(0,0,0,.3)'; ctx.lineWidth = 0.8;
+      for (let i=0;i<3;i++){ ctx.beginPath(); ctx.moveTo(cx-9, cy-27+i*3); ctx.lineTo(cx-4, cy-27+i*3); ctx.stroke(); }
+      ctx.fillStyle = '#3a3f47'; ctx.beginPath(); ctx.arc(cx-3, cy-16, 1.3, 0, Math.PI*2); ctx.fill();
       ctx.fillStyle = '#e8e2cf';
       ctx.font = '8px "Space Mono", monospace'; ctx.textAlign = 'center';
       ctx.fillText(extra ? String(extra) : '', cx+2, cy-14);
@@ -2049,6 +2560,12 @@ function drawProp(cx,cy,type,extra){
       ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = 1;
       ctx.beginPath(); ctx.moveTo(cx-14,cy-24); ctx.lineTo(cx+6,cy-24); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(cx-14,cy-19); ctx.lineTo(cx-2,cy-19); ctx.stroke();
+      // florzinha de giz + apagador na bandeja — detalhe que faltava pra não ser só um retângulo verde
+      ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(cx-6,cy-13,3,0,Math.PI*1.5); ctx.stroke();
+      ctx.fillStyle = '#7a5a3a'; ctx.fillRect(cx-16, cy-9, 24, 3); // bandeja de giz
+      ctx.fillStyle = '#ece6d6'; ctx.fillRect(cx-2, cy-11, 6, 2.5); // apagador
+      ctx.fillStyle = '#fff'; ctx.fillRect(cx+3, cy-11, 1.5, 1.5); ctx.fillRect(cx+6, cy-11, 1.5, 1.5); // giz avulso
       break;
     case 'wallclock': {
       const cyClock = cy - 45;
@@ -2081,23 +2598,78 @@ function drawProp(cx,cy,type,extra){
       break;
     case 'counter':
       drawBlock(cx,cy,16,PAL.counterTop,'#8a6a3a','#a37c45');
+      ctx.strokeStyle = 'rgba(0,0,0,.15)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(cx-9,cy-19); ctx.lineTo(cx+9,cy-19); ctx.stroke();
+      ctx.fillStyle = 'rgba(255,255,255,.35)'; ctx.fillRect(cx-9, cy-20, 18, 1); // brilho no tampo
       break;
     case 'sink':
       drawBlock(cx,cy,14,PAL.sink,'#6c96a6','#7ea6b6');
       ctx.fillStyle = 'rgba(255,255,255,.5)';
       ctx.beginPath(); ctx.ellipse(cx, cy-14, 5, 2.4, 0,0,Math.PI*2); ctx.fill();
+      ctx.strokeStyle = '#8a939c'; ctx.lineWidth = 1.4; // torneira
+      ctx.beginPath(); ctx.moveTo(cx, cy-22); ctx.lineTo(cx, cy-17); ctx.lineTo(cx+4, cy-17); ctx.stroke();
       break;
     case 'hoop':
       ctx.fillStyle = PAL.trunk; ctx.fillRect(cx-2, cy-46, 4, 46);
       ctx.fillStyle = PAL.hoopBoard; ctx.fillRect(cx-9, cy-52, 18, 12);
+      ctx.strokeStyle = 'rgba(200,50,40,.7)'; ctx.lineWidth = 1; // quadrado de mira na tabela
+      ctx.strokeRect(cx-4, cy-49, 8, 6);
       ctx.strokeStyle = PAL.hoopRing; ctx.lineWidth = 2;
       ctx.beginPath(); ctx.ellipse(cx, cy-40, 6, 2.4, 0,0,Math.PI*2); ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = 0.8; // rede — antes era só o aro, sem nada pendurado
+      for (let i=-5;i<=5;i+=2.5){ ctx.beginPath(); ctx.moveTo(cx+i*0.9,cy-39.5); ctx.lineTo(cx+i*0.5,cy-33); ctx.stroke(); }
+      break;
+    case 'trophyCase': {
+      drawBlock(cx,cy,54,PAL.trophyWood,darken(PAL.trophyWood,24),darken(PAL.trophyWood,12));
+      ctx.fillStyle = 'rgba(191,224,238,.35)'; ctx.fillRect(cx-14, cy-70, 28, 44); // porta de vidro
+      ctx.strokeStyle = 'rgba(255,255,255,.4)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(cx-14,cy-48); ctx.lineTo(cx+14,cy-48); ctx.stroke(); // prateleira
+      ctx.fillStyle = PAL.trophyGold;
+      [[-8,-58,5],[2,-56,7],[9,-60,4]].forEach(([ox,oy,s])=>{
+        ctx.beginPath(); ctx.moveTo(cx+ox,cy+oy); ctx.lineTo(cx+ox-s*0.5,cy+oy+s*1.3); ctx.lineTo(cx+ox+s*0.5,cy+oy+s*1.3); ctx.closePath(); ctx.fill();
+        ctx.beginPath(); ctx.arc(cx+ox, cy+oy-s*0.3, s*0.5, 0, Math.PI*2); ctx.fill();
+      });
+      [[-8,-34],[9,-34]].forEach(([ox,oy])=>{ ctx.beginPath(); ctx.arc(cx+ox, cy+oy, 4, 0, Math.PI*2); ctx.fill(); });
+      ctx.fillStyle = '#ece6d6'; ctx.font = '7px "Baloo 2", sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText('TAÇAS', cx, cy-28);
+      break;
+    }
+    case 'busProp': {
+      drawBlock(cx,cy,40,PAL.busYellow,PAL.busYellowDark,'#e0a622');
+      ctx.fillStyle = PAL.busBlack; ctx.fillRect(cx-20, cy-28, 40, 3); // faixa preta
+      ctx.fillStyle = PAL.busWindow;
+      for (let i=-16;i<=10;i+=8){ ctx.fillRect(cx+i, cy-46, 6, 9); }
+      ctx.fillStyle = '#1c1c1c';
+      ctx.beginPath(); ctx.arc(cx-14, cy-2, 5, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx+14, cy-2, 5, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = PAL.busBlack; ctx.font = '7px "Space Mono", monospace'; ctx.textAlign = 'center';
+      ctx.fillText('ESCOLAR', cx, cy-16);
+      break;
+    }
+    case 'bikeRackProp':
+      ctx.strokeStyle = '#5c6470'; ctx.lineWidth = 3;
+      for (let i=-1;i<=1;i++){ ctx.beginPath(); ctx.moveTo(cx+i*9, cy-2); ctx.lineTo(cx+i*9, cy-20); ctx.stroke(); }
+      ctx.beginPath(); ctx.moveTo(cx-14,cy-20); ctx.lineTo(cx+14,cy-20); ctx.stroke();
+      ctx.strokeStyle = '#3e6fa8'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.ellipse(cx-9, cy-8, 6, 6, 0, 0, Math.PI*2); ctx.stroke(); // bike encostada, decorativa
+      ctx.beginPath(); ctx.ellipse(cx+3, cy-8, 6, 6, 0, 0, Math.PI*2); ctx.stroke();
+      break;
+    case 'stage':
+      drawBlock(cx,cy,20,'#5a4a72','#3c3150','#4a3d63');
+      ctx.fillStyle = '#e8c34a'; ctx.globalAlpha = .8;
+      ctx.fillRect(cx-16, cy-32, 32, 3); // ribalta
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = 'rgba(255,255,255,.3)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(cx-16,cy-20); ctx.lineTo(cx+16,cy-20); ctx.stroke();
       break;
     case 'kioskStand':
       drawBlock(cx,cy,26,'#e6c37f','#a3782f','#bd8a3a');
-      ctx.fillStyle = '#b8492c';
       ctx.beginPath(); ctx.moveTo(cx-16,cy-26); ctx.lineTo(cx+16,cy-26); ctx.lineTo(cx+10,cy-38); ctx.lineTo(cx-10,cy-38); ctx.closePath();
-      ctx.fill();
+      ctx.save(); ctx.clip();
+      for (let i=-16;i<16;i+=5.3){ ctx.fillStyle = ((i/5.3)|0)%2===0 ? '#b8492c' : '#ece6d6'; ctx.fillRect(cx+i, cy-40, 5.3, 16); } // listras do toldo
+      ctx.restore();
+      ctx.strokeStyle = 'rgba(0,0,0,.2)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(cx-16,cy-26); ctx.lineTo(cx+16,cy-26); ctx.lineTo(cx+10,cy-38); ctx.lineTo(cx-10,cy-38); ctx.closePath(); ctx.stroke();
       break;
     case 'sign': {
       const text = extra || '';
@@ -2122,7 +2694,9 @@ function drawProp(cx,cy,type,extra){
    12x22 "pixel" canvas, cached, then blitted scaled + unsmoothed —
    the classic low-res sprite trick, entirely code-generated.
    ============================================================ */
-const SPRITE_W = 12, SPRITE_H = 22;
+// 14 de largura (2px a mais que antes) pra sobrar espaço nas duas pontas pros braços — sem essa
+// folga eles ficavam "colados" no tronco e não davam pra balançar de verdade, só trocar de cor.
+const SPRITE_W = 14, SPRITE_H = 22;
 const spriteCache = new Map();
 
 function buildSpriteFrame(skin, hair, shirt, pants, shoe, phase, hat){
@@ -2133,38 +2707,52 @@ function buildSpriteFrame(skin, hair, shirt, pants, shoe, phase, hat){
   const px = (x,y,w,h,color)=>{ sctx.fillStyle = color; sctx.fillRect(x,y,w,h); };
 
   // hair cap
-  px(2,0,8,1,hair); px(1,1,10,1,hair); px(0,2,12,1,hair);
+  px(3,0,8,1,hair); px(2,1,10,1,hair); px(1,2,12,1,hair);
   // face
-  px(0,3,2,1,hair); px(2,3,8,1,skin); px(10,3,2,1,hair);
+  px(1,3,2,1,hair); px(3,3,8,1,skin); px(11,3,2,1,hair);
   if (hat){
     // a baseball-style cap worn over the hair, with a small brim poking forward-left
-    px(1,0,10,1,hat); px(0,1,12,1,hat); px(0,2,12,1,hat);
-    px(-1,3,3,1,darken(hat,20));
+    px(2,0,10,1,hat); px(1,1,12,1,hat); px(1,2,12,1,hat);
+    px(0,3,3,1,darken(hat,20));
   }
-  px(1,4,10,1,skin);
-  px(1,5,10,1,skin); px(3,5,1,1,'#26201c'); px(8,5,1,1,'#26201c'); // eyes
-  px(1,6,10,1,skin);
-  px(2,7,8,1,skin);
-  px(3,8,6,1,skin); // neck
+  px(2,4,10,1,skin);
+  px(2,5,10,1,skin); px(4,5,1,1,'#26201c'); px(9,5,1,1,'#26201c'); // eyes
+  px(2,6,10,1,skin);
+  px(3,7,8,1,skin);
+  px(4,8,6,1,skin); // neck
 
-  // torso + tucked hands
-  px(1,9,10,1,shirt);
-  px(0,10,12,3,shirt);
-  px(0,13,1,2,skin); px(1,13,10,2,shirt); px(11,13,1,2,skin);
-  px(1,15,10,1,shirt);
+  // torso
+  px(2,9,10,1,shirt);
+  px(1,10,12,3,shirt);
+  px(1,13,12,2,shirt); // mangas, os braços de verdade ficam nas colunas 0 e 13 (fora do tronco)
+  px(2,15,10,1,shirt);
   // belt
-  px(1,16,10,1,darken(pants,28));
+  px(2,16,10,1,darken(pants,28));
+  // dobra de pano na cintura — uma linha de sombra que dá peso ao tecido em vez de um bloco liso
+  sctx.globalAlpha = 0.22; sctx.fillStyle = '#000';
+  sctx.fillRect(2,12,10,1);
+  sctx.globalAlpha = 1;
+
+  // braços — balançam de verdade, opostos à perna que avança (contra-movimento natural de quem anda)
+  const armIdle = ()=>{ px(0,13,1,4,shirt); px(0,17,1,2,skin); px(13,13,1,4,shirt); px(13,17,1,2,skin); };
+  const armSwing = (forwardCol, backCol)=>{
+    px(forwardCol,13,1,2,shirt); px(forwardCol,15,1,1,skin);   // braço que avança: curto, cotovelo dobrado
+    px(backCol,13,1,5,shirt);    px(backCol,18,1,1,skin);      // braço que fica atrás: comprido, esticado
+  };
 
   // legs — alternate which leg is "forward" (shorter) to fake a walk cycle
   if (phase==='legL'){
-    px(0,16,6,3,pants); px(0,19,6,1,shoe);       // left leg lifted (forward)
-    px(6,17,6,4,pants); px(6,21,6,1,shoe);       // right leg planted
+    px(1,16,6,3,pants); px(1,19,6,1,shoe);       // left leg lifted (forward)
+    px(7,17,6,4,pants); px(7,21,6,1,shoe);       // right leg planted
+    armSwing(13,0);                              // perna esquerda na frente → braço direito na frente
   } else if (phase==='legR'){
-    px(0,17,6,4,pants); px(0,21,6,1,shoe);       // left leg planted
-    px(6,16,6,3,pants); px(6,19,6,1,shoe);       // right leg lifted (forward)
+    px(1,17,6,4,pants); px(1,21,6,1,shoe);       // left leg planted
+    px(7,16,6,3,pants); px(7,19,6,1,shoe);       // right leg lifted (forward)
+    armSwing(0,13);                              // perna direita na frente → braço esquerdo na frente
   } else {
-    px(0,17,6,4,pants); px(0,21,6,1,shoe);
-    px(6,17,6,4,pants); px(6,21,6,1,shoe);
+    px(1,17,6,4,pants); px(1,21,6,1,shoe);
+    px(7,17,6,4,pants); px(7,21,6,1,shoe);
+    armIdle();
   }
   // one-pixel shading pass: darken the sprite's right edge, lighten the left, cheap ambient occlusion
   sctx.globalAlpha = 0.14; sctx.fillStyle = '#000';
@@ -2187,8 +2775,19 @@ function walkPhase(isMoving, clock){
   return Math.floor(clock/170) % 2 === 0 ? 'legL' : 'legR';
 }
 
-/* draws the cached pixel sprite scaled up, unsmoothed, anchored at feet (sx,sy) */
-function drawPerson(context, sx, sy, skin, hair, shirt, scale, facing, isMoving, pants, shoe, hat){
+/* física leve de "atraso e recuperação" por personagem — guardada fora do objeto do NPC/jogador
+   pra não sujar o save nem o resto do código, indexada pela própria referência do objeto */
+const motionState = new WeakMap();
+function getMotion(entity){
+  let m = motionState.get(entity);
+  if (!m){ m = { lean:0, seed: Math.random()*100 }; motionState.set(entity, m); }
+  return m;
+}
+
+/* draws the cached pixel sprite scaled up, unsmoothed, anchored at feet (sx,sy).
+   `entity` (opcional) é a referência do NPC/jogador — só serve pra guardar o estado de física
+   entre chamadas (inclinação ao andar, "seed" de respiração), nunca é modificada aqui. */
+function drawPerson(context, sx, sy, skin, hair, shirt, scale, facing, isMoving, pants, shoe, hat, seated, entity){
   pants = pants || PAL.uniformPants; shoe = shoe || PAL.uniformShoe;
   const t = performance.now();
   const phase = walkPhase(isMoving, t);
@@ -2196,11 +2795,28 @@ function drawPerson(context, sx, sy, skin, hair, shirt, scale, facing, isMoving,
   const PX = 4 * (scale/2.0); // base pixel size, scaled to caller's requested size
   const w = SPRITE_W*PX, h = SPRITE_H*PX;
 
-  // menos robótico: uma leve "respiração" parado, e um saltinho sincronizado com o passo ao andar
-  const bob = isMoving ? -Math.abs(Math.sin(t/170*Math.PI)) * 2 : Math.sin(t/900) * 1.1;
+  const motion = entity ? getMotion(entity) : null;
+  // cada personagem respira no seu próprio ritmo (seed aleatória) — antes todo mundo balançava
+  // exatamente igual e ao mesmo tempo, o que lia como um monte de bonecos sincronizados, não gente
+  const bob = isMoving ? -Math.abs(Math.sin(t/170*Math.PI)) * 2 : Math.sin(t/900 + (motion?motion.seed:0)) * 1.1;
+  // "sentado": sem sprite de cadeira própria, então a gente encolhe as pernas achatando a metade
+  // de baixo do desenho e descendo o corpo um pouco — o suficiente pra ler como "atrás da carteira"
+  const sitSquash = seated ? 0.78 : 1;
+  // inclinação de "mola": o corpo pende pro lado que anda e demora um pouco pra voltar ao centro
+  // quando para — é o que dá peso físico ao movimento em vez de só deslizar reto pelo chão
+  let lean = 0;
+  if (motion){
+    const target = isMoving ? (facing==='left' ? -0.1 : 0.1) : 0;
+    motion.lean += (target - motion.lean) * 0.15;
+    lean = motion.lean;
+  }
+  // squash & stretch acompanhando o saltinho do passo — alonga no ponto alto do salto, achata na pisada
+  const stretch = 1 + Math.abs(bob)*0.02;
+  const squash  = 1 - Math.abs(bob)*0.02;
 
   context.save();
   // shadow — encolhe um pouquinho quando o personagem "sobe" no saltinho, reforçando a profundidade
+  // (fica de fora da rotação/inclinação de propósito: sombra no chão não deveria tombar junto)
   context.beginPath();
   context.ellipse(sx, sy+3, w*0.32*(1-Math.abs(bob)*0.015), h*0.09, 0, 0, Math.PI*2);
   context.fillStyle = PAL.shadow;
@@ -2208,9 +2824,27 @@ function drawPerson(context, sx, sy, skin, hair, shirt, scale, facing, isMoving,
 
   const prevSmooth = context.imageSmoothingEnabled;
   context.imageSmoothingEnabled = false;
-  context.translate(sx, sy - h + 4 + bob);
+  context.translate(sx, sy);      // pivô no pé — a inclinação gira a partir do chão, não da cabeça
+  context.rotate(lean);
+  // o deslocamento vertical já embute TODOS os fatores de escala verticais (stretch do salto e
+  // sitSquash de sentar) — é o mesmo truque que fazia o "sentado" funcionar certo antes: assim o
+  // pé sempre acaba exatamente em (4+bob), não importa o quanto o corpo estique/achate depois
+  context.translate(0, -h*stretch*sitSquash + 4 + bob);
   if (facing==='left'){ context.translate(w/2,0); context.scale(-1,1); context.translate(-w/2,0); }
+  context.scale(squash, stretch);
+  if (seated) context.scale(1, sitSquash);
   context.drawImage(sprite, 0, 0, SPRITE_W, SPRITE_H, 0, 0, w, h);
+  // piscada real, não gravada no sprite (senão cada piscada exigiria cachear um bitmap novo) —
+  // desenhada por cima, na mesma transformação já ativa, então acompanha flip/inclinação de graça
+  if (motion){
+    if (motion.nextBlink === undefined) motion.nextBlink = t + 1000 + Math.random()*4000;
+    if (t > motion.nextBlink){ motion.blinkUntil = t + 110; motion.nextBlink = t + 2500 + Math.random()*4000; }
+    if (motion.blinkUntil && t < motion.blinkUntil){
+      context.fillStyle = skin;
+      context.fillRect(4*PX, 5*PX, PX, PX);
+      context.fillRect(9*PX, 5*PX, PX, PX);
+    }
+  }
   context.imageSmoothingEnabled = prevSmooth;
   context.restore();
 }
@@ -2263,37 +2897,62 @@ function updateScriptedNpc(npc, dt, onArriveWaypoint){
    linha reta (que atravessaria a parede).
    ============================================================ */
 const CLASS_SEATS = {
-  novatoA: {col:8,  row:43.6},
-  novatoB: {col:13, row:43.6},
-  diego:   {col:17, row:43.6},
+  novatoA: {col:6, row:55},
+  novatoB: {col:7, row:57},
+  diego:   {col:5, row:56},
 };
 const PATIO_SPOTS = [
-  {col:11, row:30}, {col:16, row:31}, {col:19, row:29.6}, {col:9, row:31.5}, {col:14, row:30.5},
+  {col:11, row:31}, {col:16, row:32}, {col:19, row:30}, {col:9, row:32}, {col:14, row:31},
 ];
 const HALL_PATROL_SPOTS = [
-  {col:6, row:34}, {col:20, row:34}, {col:14, row:30.5}, {col:5, row:30}, {col:23, row:31},
+  {col:6, row:48}, {col:22, row:48}, {col:14, row:49}, {col:5, row:47}, {col:24, row:48},
 ];
 const PROFESSOR_SPOTS = [
-  {col:10, row:43}, {col:14, row:43}, {col:12, row:44},
+  {col:4, row:54}, {col:6, row:56}, {col:5, row:57},
 ];
 const GATE_SPOT = {col:10.5, row:28.3};
+const PE_SPOTS = { novatoA:{col:5,row:39}, novatoB:{col:9,row:39}, diego:{col:7,row:41} };
+// deslocados 0.5 coluna das cadeiras já plantadas em buildProps (6,9,12,15,18,21,24 na linha 74)
+// pra não ficar exatamente em cima de uma
+const ASSEMBLY_SPOTS = { novatoA:{col:10.5,row:74}, novatoB:{col:16.5,row:74}, diego:{col:22.5,row:74}, tutor:{col:7.5,row:73}, professor:{col:24,row:73} };
 const NPC_ROUTINES = {
-  novatoA:   { classSeat:CLASS_SEATS.novatoA, wander:PATIO_SPOTS,       shelterWander:HALL_PATROL_SPOTS, leaveSpot:GATE_SPOT, speed:1.6 },
-  novatoB:   { classSeat:CLASS_SEATS.novatoB, wander:PATIO_SPOTS,       shelterWander:HALL_PATROL_SPOTS, leaveSpot:GATE_SPOT, speed:1.6 },
-  diego:     { classSeat:CLASS_SEATS.diego,   wander:PATIO_SPOTS,       shelterWander:HALL_PATROL_SPOTS, leaveSpot:GATE_SPOT, speed:1.8 },
-  tutor:     { classSeat:null,                wander:HALL_PATROL_SPOTS, shelterWander:null,               leaveSpot:null,      speed:1.4 },
-  professor: { classSeat:{col:12,row:43},     wander:PROFESSOR_SPOTS,   shelterWander:null,               leaveSpot:null,      speed:1.0 },
+  novatoA:   { classSeat:CLASS_SEATS.novatoA, peSpot:PE_SPOTS.novatoA, wander:PATIO_SPOTS,       shelterWander:HALL_PATROL_SPOTS, leaveSpot:GATE_SPOT, assemblySpot:ASSEMBLY_SPOTS.novatoA,   speed:1.6 },
+  novatoB:   { classSeat:CLASS_SEATS.novatoB, peSpot:PE_SPOTS.novatoB, wander:PATIO_SPOTS,       shelterWander:HALL_PATROL_SPOTS, leaveSpot:GATE_SPOT, assemblySpot:ASSEMBLY_SPOTS.novatoB,   speed:1.6 },
+  diego:     { classSeat:CLASS_SEATS.diego,   peSpot:PE_SPOTS.diego,   wander:PATIO_SPOTS,       shelterWander:HALL_PATROL_SPOTS, leaveSpot:GATE_SPOT, assemblySpot:ASSEMBLY_SPOTS.diego,     speed:1.8 },
+  tutor:     { classSeat:null,                peSpot:null,             wander:HALL_PATROL_SPOTS, shelterWander:null,               leaveSpot:null,      assemblySpot:ASSEMBLY_SPOTS.tutor,     speed:1.4 },
+  professor: { classSeat:{col:4,row:53},      peSpot:null,             wander:PROFESSOR_SPOTS,   shelterWander:null,               leaveSpot:null,      assemblySpot:ASSEMBLY_SPOTS.professor, speed:1.0 },
 };
 const BAD_WEATHER = ['chuva','granizo','frio']; // faz os alunos preferirem o saguão coberto ao pátio
 
-// só existem duas "zonas" separadas pelo gargalo do corredor: dentro da sala (south) e o resto (north)
-function scheduleZoneOf(row){ return row >= 41.7 ? 'south' : 'north'; }
+// três zonas agora, não duas: o prédio novo tem DOIS gargalos reais — a porta da fachada (linha 46,
+// entre o pátio/quadra/piscina ao ar livre e o hall) e a porta do corredor (linha 51, entre o hall
+// e as salas). A versão antiga só modelava o segundo gargalo, então um NPC vindo da quadra pra
+// dentro do prédio cortava caminho reto e atravessava visualmente a quina da parede da fachada.
+const ZONE_RANK = { outside:0, hall:1, inside:2 };
+const ZONE_DOORS = [ {col:10.5,row:46.6}, {col:10.5,row:51} ]; // [0]=pátio↔hall, [1]=hall↔corredor
+function scheduleZoneOf(row){
+  if (row >= 50.5) return 'inside';
+  if (row >= 46) return 'hall';
+  return 'outside';
+}
+// sala de aula 1 tem uma porta PRÓPRIA (col9,row54), separada do corredor por uma parede real —
+// só cruzar a zona "inside" não basta pra entrar/sair dela, senão a reta corta a quina da parede.
+// Por isso ela funciona como uma sub-zona à parte: sempre que ENTRA, passa por (10.5,54)→(9,54)
+// (alinha no corredor antes de cortar pra porta); sempre que SAI, o inverso (9,54)→(10.5,54) —
+// nos dois sentidos, não só na entrada, senão a saída atravessava a parede sem nunca tocar a porta.
+function insideSala1(pt){ return pt.col <= 8 && pt.row >= 52 && pt.row <= 58; }
 function buildScheduleRoute(npc, target){
-  if (scheduleZoneOf(npc.row) === scheduleZoneOf(target.row)) return [target];
-  const spine = scheduleZoneOf(npc.row) === 'north'
-    ? [{col:10.5,row:35.8}, {col:10.5,row:38}, {col:10.5,row:41.4}]
-    : [{col:10.5,row:41.4}, {col:10.5,row:38}, {col:10.5,row:35.8}];
-  return [...spine, target];
+  const npcInSala1 = insideSala1(npc), targetInSala1 = insideSala1(target);
+  const path = [];
+  if (npcInSala1 && !targetInSala1) path.push({col:9,row:54}, {col:10.5,row:54}); // saída: porta primeiro, depois alinha no corredor
+  const from = ZONE_RANK[scheduleZoneOf(npc.row)], to = ZONE_RANK[scheduleZoneOf(target.row)];
+  if (from !== to){
+    const doors = from < to ? ZONE_DOORS.slice(from, to) : ZONE_DOORS.slice(to, from).slice().reverse();
+    path.push(...doors);
+  }
+  if (targetInSala1 && !npcInSala1) path.push({col:10.5,row:54}, {col:9,row:54});
+  path.push(target);
+  return path;
 }
 function moveAlongRoute(npc, dt, speed){
   if (!npc.routeQueue || npc.routeQueue.length === 0) return true;
@@ -2312,14 +2971,26 @@ function moveAlongRoute(npc, dt, speed){
 }
 
 function updateScheduleAI(key, npc, dt){
-  if (!useClockPill || tutor.phase !== 'done') return;
+  // NÃO usar tutor.phase aqui: phase só chega a 'done' via updateScriptedNpc, que só roda
+  // durante o tour guiado do Dia 1. A partir do Dia 2 o tour é pulado (startGame seta
+  // routineMode=true direto), então tutor.phase nunca vira 'done' de novo — e como esse guard
+  // era compartilhado por TODOS os NPCs (checava sempre a variável global tutor, nunca o
+  // parâmetro npc), a IA de rotina inteira travava pra sempre a partir do 2º dia.
+  if (!useClockPill || !npc.routineMode) return;
   const routine = NPC_ROUTINES[key];
   const period = currentPeriod(gameClockMinutes);
   let target, targetId;
-  if (period.subject && routine.classSeat){
+  if (period.subject === 'Educação Física' && routine.peSpot){
+    target = routine.peSpot; targetId = 'pe:'+period.startMin;
+  } else if (period.subject && routine.classSeat){
     target = routine.classSeat; targetId = 'class:'+period.startMin;
   } else if (period.name === 'Saída' && routine.leaveSpot){
     target = routine.leaveSpot; targetId = 'leave';
+  } else if (period.name === 'Apresentação escolar' && routine.assemblySpot){
+    // esse período não tem `subject` (não gera falta/quiz), mas o auditório novo merecia pelo
+    // menos reunir todo mundo lá durante o horário que leva o nome dele, em vez de ser um
+    // cômodo enorme que ninguém nunca visita
+    target = routine.assemblySpot; targetId = 'assembly:'+period.startMin;
   } else {
     // clima ruim? quem tem pra onde correr prefere o saguão coberto ao pátio aberto — igual você faria
     const pool = (BAD_WEATHER.includes(weather.id) && routine.shelterWander) ? routine.shelterWander : routine.wander;
@@ -2339,6 +3010,9 @@ function updateScheduleAI(key, npc, dt){
   }
   const arrived = moveAlongRoute(npc, dt, routine.speed);
   npc.phase = arrived ? 'stand' : 'moving';
+  // "sentado": só quando já chegou na própria carteira (targetId 'class:...') — dá pra usar a
+  // cadeira de verdade em vez de ficar em pé do lado dela feito estátua
+  npc.seated = arrived && targetId.indexOf('class:') === 0;
 }
 
 function startTour(){
@@ -2352,12 +3026,13 @@ function startTour(){
 
 function onTutorWaypoint(idx, finished){
   if (idx < 0) return;
-  showCaption('Seu Ivo', TUTOR_CAPTIONS[idx]);
+  showCaption(tutor.name, fmt(TUTOR_CAPTIONS[idx], tutor.name));
   if (finished){
     gamePhase = 'CLASSROOM_DONE';
     useClockPill = true;
+    tutor.routineMode = true; // vira coordenador de ronda de vez — nunca mais volta pro tour guiado
     setTimeout(openSchedule, 1600);
-    setTimeout(()=> showToast('Fale com a Profª Célia (E) na hora da aula pra responder as perguntas!', 4200), 3600);
+    setTimeout(()=> showToast('Fale com '+professor.name+' (E) na hora da aula pra responder as perguntas!', 4200), 3600);
   }
 }
 
@@ -2393,7 +3068,7 @@ function triggerFaint(){
     if (bed){ player.col = bed.col; player.row = bed.row + 0.8; }
     player.stats.energy = 55;
     player.stats.mood = clamp01to100(player.stats.mood - 10);
-    gameClockMinutes += 30;
+    advanceGameClock(30);
     fainted = false;
     showToast('Você acorda na sua cama, um pouco mais descansado(a).', 3200);
   }, 1900);
@@ -2402,10 +3077,14 @@ function triggerFaint(){
 function attendanceVerdict(faltas){
   if (faltas === 0) return 'Nenhuma falta hoje — presença exemplar! 🌟';
   if (faltas === 1) return 'Uma falta passou batida, mas é bom não repetir a dose.';
-  return 'Duas faltas renderam uma bronca da coordenação — melhor não arriscar uma terceira.';
+  if (faltas === 2) return 'Duas faltas renderam uma bronca da coordenação — melhor não arriscar uma terceira.';
+  // com Educação Física como 3ª matéria do dia, dá pra matar as três — texto genérico pra faltas>=3
+  return faltas+' faltas num único dia! A coordenação já está de olho em você.';
 }
 
 function openDayEnd(){
+  document.getElementById('btn-next-day').disabled = false; // reabilita pro próximo fim de dia (ver btn-continue)
+  document.getElementById('de-title').textContent = 'Fim do Dia '+(player.dayNumber||1)+'! 🔔';
   document.getElementById('de-faltas').textContent = player.faltas;
   document.getElementById('de-faltas-note').textContent = attendanceVerdict(player.faltas);
   document.getElementById('de-quiz').textContent = dayStats.quizCorrect+'/'+dayStats.quizTotal;
@@ -2417,7 +3096,7 @@ function openDayEnd(){
   const relEl = document.getElementById('de-rel');
   relEl.innerHTML = '';
   [novatoA, novatoB, diego].forEach(npc=>{
-    const tier = npc.romance >= 70 ? { label:'Namorado(a)', emoji:'💜' } : relTier(npc.relationship);
+    const tier = relationshipTier(npc);
     const row = document.createElement('div');
     row.className = 'rel-row';
     row.innerHTML = '<span>'+npc.name+'</span><span class="tier">'+tier.emoji+' '+tier.label+'</span>';
@@ -2468,6 +3147,7 @@ function handleInteractKey(){
   if (sheetOpen()) return;
   const target = nearestInteractable();
   if (!target) return;
+  playBlip();
   if (target.type==='npc' && target.ref.role==='professor') openClassQuiz();
   else if (target.type==='npc') openNpcDialogue(target.ref);
   else if (target.type==='fountain'){
@@ -2479,12 +3159,28 @@ function handleInteractKey(){
   } else if (target.type==='bed'){
     player.stats.energy = 100;
     player.stats.mood = clamp01to100(player.stats.mood + 10);
-    gameClockMinutes += 60;
+    advanceGameClock(60);
     openObjectDialogue('Sua cama', 'Você tira uma soneca rápida e acorda revigorado(a). 😴 (energia cheia, +1h)');
   } else if (target.type==='cantina'){
-    openShop();
+    // "horário certo pra comida": fora do recreio, a Dona Marta não está de fato servindo —
+    // só quando useClockPill ainda não ligou (antes do tour acabar) que a cantina fica sempre aberta
+    const period = currentPeriod(gameClockMinutes);
+    if (useClockPill && period.name !== 'Recreio'){
+      openObjectDialogue('Cantina', 'Dona Marta: "Só sirvo comida quentinha na hora do recreio, viu? Passa mais tarde!"');
+    } else {
+      openShop();
+    }
   } else if (target.type==='kiosk'){
     openClothingShop();
+  } else if (target.type==='hoop'){
+    openPhysEd();
+  } else if (target.type==='trophy'){
+    openObjectDialogue('Armário de Troféus',
+      'Uma placa de latão reluzente conta a história da escola: "Fundada há mais de 40 anos, '+
+      'esta escola já formou gerações inteiras do bairro. O troféu dourado do meio veio do '+
+      'campeonato de handebol de 2009 — até hoje o orgulho da quadra. Ao lado, a medalha de '+
+      'honra ao mérito da gincana cultural, e o quadro amarelado com a primeira turma de '+
+      'formandos. Seja bem-vindo(a) à família."');
   }
 }
 
@@ -2504,6 +3200,14 @@ function clampRel(v){ return Math.max(-100, Math.min(100, v)); }
 function clampRomance(v){ return Math.max(0, Math.min(100, v)); }
 function isFactionHostile(npc){
   return !!(npc.faction && FACTIONS[npc.faction].rep <= FACTION_HOSTILE_REP);
+}
+// `romance` só sobe (paquerar/presente) e nunca desce sozinho, então sem isso um NPC hostil por
+// briga/insulto continuava marcado como "Namorado(a)" em toda a UI — mesmo tratando o jogador com
+// frieza no diálogo. A hostilidade de facção sempre vence a exibição de romance.
+function relationshipTier(npc){
+  if (isFactionHostile(npc)) return { label:'Hostil', emoji:'💢' };
+  if (npc.romance >= 70) return { label:'Namorado(a)', emoji:'💜' };
+  return relTier(npc.relationship);
 }
 function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
 function fmt(str,name){ return str.replace('{name}', name); }
@@ -2596,7 +3300,7 @@ function openNpcDialogue(npc){
     b.textContent = action.label;
     b.addEventListener('click', ()=>{
       const result = action.run(npc);
-      const tier = npc.romance >= 70 ? { label:'Namorado(a)', emoji:'💜' } : relTier(npc.relationship);
+      const tier = relationshipTier(npc);
       const sign = result.delta >= 0 ? '+' : '';
       showToast(result.line, 3200);
       setTimeout(()=> showToast(npc.name+': '+tier.emoji+' '+tier.label+' ('+sign+Math.round(result.delta)+')', 2600), 3300);
@@ -2604,7 +3308,7 @@ function openNpcDialogue(npc){
     });
     replies.appendChild(b);
   });
-  if (npc.romance >= 70){
+  if (npc.romance >= 70 && !hostile){ // facção hostil sempre suprime presente, mesmo com romance alto herdado de antes
     const giftBtn = document.createElement('button');
     giftBtn.textContent = '🎁 Dar um presente';
     giftBtn.style.borderColor = 'var(--mango)';
@@ -2646,7 +3350,7 @@ function rollDamage(move, atkForca, defResistencia){
 }
 
 function startFight(npc){
-  fight = { npc, npcHealth:100, log:'Você parte pra cima de '+npc.name+'!' };
+  fight = { npc, npcHealth:100, log:'Você parte pra cima de '+npc.name+'!', locked:false };
   document.getElementById('fight-title').textContent = 'Confronto: Você vs '+npc.name;
   document.getElementById('fight-player-name').textContent = 'Você';
   document.getElementById('fight-npc-name').textContent = npc.name;
@@ -2665,18 +3369,21 @@ function renderFight(){
   Object.entries(MOVES).forEach(([key,move])=>{
     const b = document.createElement('button');
     b.textContent = move.label+' (custa '+move.cost+' energia)';
-    b.disabled = player.stats.energy < move.cost;
+    b.disabled = fight.locked || player.stats.energy < move.cost;
     b.addEventListener('click', ()=> playerMove(key));
     movesEl.appendChild(b);
   });
   const flee = document.createElement('button');
   flee.className = 'flee';
   flee.textContent = '🏃 Fugir';
+  flee.disabled = fight.locked;
   flee.addEventListener('click', tryFlee);
   movesEl.appendChild(flee);
 }
 
 function playerMove(key){
+  if (fight.locked) return; // já escolheu um golpe nesse turno — espera o oponente revidar antes de agir de novo
+  fight.locked = true;
   const move = MOVES[key];
   const npc = fight.npc;
   player.stats.energy = clamp01to100(player.stats.energy - move.cost);
@@ -2684,10 +3391,12 @@ function playerMove(key){
   if (rollHit(move.acc, player.attrs.agilidade, npc.combat.agilidade)){
     const dmg = rollDamage(move, player.attrs.forca, npc.combat.resistencia);
     fight.npcHealth -= dmg;
+    playHit();
     log = key==='objeto'
       ? 'Você pega '+pick(IMPROVISED_OBJECTS)+' e acerta '+npc.name+' em cheio! (-'+dmg+')'
       : 'Você acerta um '+move.label.replace(/^\S+\s/,'')+' em '+npc.name+'! (-'+dmg+')';
   } else {
+    playWhoosh();
     log = npc.name+' se esquiva do seu ataque!';
   }
   fight.log = log;
@@ -2706,13 +3415,16 @@ function npcMove(){
   if (rollHit(move.acc, npc.combat.agilidade, player.attrs.agilidade)){
     const dmg = rollDamage(move, npc.combat.forca, player.attrs.resistencia);
     player.stats.health = clamp01to100(player.stats.health - dmg);
+    playHit();
     log += npc.name+' revida com um '+move.label.replace(/^\S+\s/,'')+'! (-'+dmg+' em você)';
   } else {
+    playWhoosh();
     log += 'Você se esquiva!';
   }
   fight.log = log;
   updateStatBars();
   if (player.stats.health <= 0){ endFight('nocaute'); return; }
+  fight.locked = false; // turno do NPC terminou — libera os botões de volta pro jogador
   renderFight();
 }
 
@@ -2772,7 +3484,7 @@ function endFight(outcome){
         // ninguém notou: carregado(a) discretamente pra cama de casa, como antes
         const bed = interactables.find(i=>i.type==='bed');
         if (bed){ player.col = bed.col; player.row = bed.row + 0.8; }
-        gameClockMinutes += 40;
+        advanceGameClock(40);
       }
       // se pendingFightCatch, o jogador é flagrado ainda desacordado(a) no local da briga —
       // não faz sentido já tê-lo(a) carregado pra casa antes disso (ver triggerFightCatch/closeFight,
@@ -2822,6 +3534,7 @@ function renderShopButtons(){
 }
 
 function buyItem(item){
+  playCoin();
   player.money -= item.price;
   player.stats.energy = clamp01to100(player.stats.energy + item.energy);
   player.stats.mood = clamp01to100(player.stats.mood + item.mood);
@@ -2863,13 +3576,14 @@ function renderGiftButtons(npc){
 }
 
 function giveGift(npc, item){
+  playCoin();
   player.money -= item.price;
   npc.romance = clampRomance(npc.romance + item.mood*0.6);
   npc.relationship = clampRel(npc.relationship + item.mood*0.3);
   player.stats.mood = clamp01to100(player.stats.mood + item.mood*0.4);
   updateMoneyHud();
   updateStatBars();
-  const tier = npc.romance >= 70 ? { label:'Namorado(a)', emoji:'💜' } : relTier(npc.relationship);
+  const tier = relationshipTier(npc);
   showToast(fmt(getGiftReactionLine(), npc.name), 3200);
   setTimeout(()=> showToast(npc.name+': '+tier.emoji+' '+tier.label+' (+'+Math.round(item.mood*0.3)+')', 2600), 3300);
   closeDialogue();
@@ -2919,6 +3633,7 @@ function renderClothingButtons(){
 }
 
 function buyClothing(item){
+  playCoin();
   player.money -= item.price;
   if (item.type === 'shirt'){
     player.shirt = item.value;
@@ -2946,11 +3661,12 @@ function openObjectDialogue(title, text){
 
 function openClassQuiz(){
   const period = currentPeriod(gameClockMinutes);
-  if (!period.subject){
+  if (!period.subject || !subjectPools[period.subject]){
     const flavor = {
       'Antes da aula':'A aula ainda não começou — sente-se e aguarde o sinal.',
       'Entrada':'Quase na hora! Aguarde o sinal para a aula começar.',
       'Recreio':'Sem aula agora — aproveite o recreio!',
+      'Educação Física':'Essa aula não é comigo — vai lá pra quadra, o pessoal já deve estar te esperando!',
       'Apresentação escolar':'Hora da apresentação — sem aula nesse período.',
       'Saída':'As aulas já acabaram por hoje. Até amanhã!',
     };
@@ -2984,6 +3700,52 @@ function openClassQuiz(){
     });
     replies.appendChild(b);
   });
+  document.getElementById('dialogue').hidden = false;
+}
+
+/* ---- Educação Física: interagir com a cesta no horário certo vira um desafio de arremesso,
+   usando Força/Agilidade de verdade — mesmo padrão de recompensa da aula na sala (openClassQuiz) ---- */
+function openPhysEd(){
+  const period = currentPeriod(gameClockMinutes);
+  if (period.subject !== 'Educação Física'){
+    const flavor = {
+      'Antes da aula':'A quadra ainda tá fechada — a aula de Educação Física é mais tarde.',
+      'Entrada':'Ainda não é hora de Educação Física — vai pra sua sala primeiro.',
+      '1ª Aula':'Agora é Matemática, não Educação Física! Vai pra sala.',
+      'Recreio':'Sem aula agora, mas nada impede de dar uns arremessos no recreio... quer dizer, isso ainda não conta nota.',
+      '2ª Aula':'Agora é História, não Educação Física! Vai pra sala.',
+      'Apresentação escolar':'Hora da apresentação — sem Educação Física nesse período.',
+      'Saída':'A quadra já fechou por hoje. Até amanhã!',
+    };
+    openObjectDialogue('Quadra', flavor[period.name] || 'Nenhuma aula de Educação Física agora.');
+    return;
+  }
+  dialogueOpen = true;
+  document.getElementById('dlg-who').textContent = 'Educação Física';
+  document.getElementById('dlg-text').textContent = 'Sua vez de arremessar! Sua Força e Agilidade decidem se a bola entra.';
+  const replies = document.getElementById('dlg-replies');
+  replies.innerHTML = '';
+  const chance = Math.max(0.15, Math.min(0.9, 0.3 + (player.attrs.forca+player.attrs.agilidade-10)*0.05));
+  const shoot = document.createElement('button');
+  shoot.textContent = 'Arremessar! ('+Math.round(chance*100)+'% de chance)';
+  shoot.addEventListener('click', ()=>{
+    dayStats.quizTotal++;
+    if (Math.random() < chance){
+      dayStats.quizCorrect++;
+      player.attrs.forca = Math.min(10, player.attrs.forca + 0.3);
+      player.attrs.agilidade = Math.min(10, player.attrs.agilidade + 0.3);
+      player.stats.mood = clamp01to100(player.stats.mood + 6);
+      player.money += 1;
+      updateMoneyHud();
+      showToast('Cesta! 🏀 +Força, +Agilidade, 💰 +R$1', 2200);
+    } else {
+      player.stats.energy = clamp01to100(player.stats.energy - 4);
+      showToast('Foi por pouco... a bola bateu na tabela.', 2600);
+    }
+    buildAttrGrid();
+    closeDialogue();
+  });
+  replies.appendChild(shoot);
   document.getElementById('dialogue').hidden = false;
 }
 
@@ -3021,7 +3783,11 @@ function update(dt){
   checkAttendance();
   checkBell();
   checkDayEnd();
-  advanceCalendar(dt);
+  // o calendário NÃO avança sozinho durante o dia (ficaria dessincronizado do relógio de aula —
+  // um dia letivo inteiro dura ~1900s reais, tempo de mais que sobra pra passar meses de calendário).
+  // ele só avança de verdade quando o dia realmente vira, em startNextDay()/addOneCalendarDay().
+  saveTimer -= dt;
+  if (saveTimer <= 0){ saveTimer = 5; saveGame(); }
   updateWeather(dt);
   updateParticles(dt);
   updateAmbients(dt);
@@ -3030,6 +3796,7 @@ function update(dt){
   const fightModalOpen = !document.getElementById('fight-modal').hidden;
   const dayEndModalOpen = !document.getElementById('dayend-modal').hidden;
   const inputLocked = dialogueOpen || fainted || disciplineLock || fightModalOpen || dayEndModalOpen || !document.getElementById('schedule-modal').hidden || sheetOpen() || npcEditorOpen();
+  if (inputLocked) player.moving = false; // senão o ciclo de passada fica "andando parado" com o modal aberto
   if (!inputLocked){
     let dx=0, dy=0;
     if (KEYS['arrowup']||KEYS['w']) dy -= 1;
@@ -3038,6 +3805,9 @@ function update(dt){
     if (KEYS['arrowright']||KEYS['d']) dx += 1;
     const moving = dx!==0 || dy!==0;
     player.moving = moving;
+    const stepPhase = walkPhase(moving, performance.now());
+    if (moving && stepPhase !== lastFootstepPhase) playFootstep();
+    lastFootstepPhase = stepPhase;
     if (moving){
       const len = Math.hypot(dx,dy);
       dx/=len; dy/=len;
@@ -3055,14 +3825,17 @@ function update(dt){
     }
   }
 
-  if (gamePhase === 'TOUR' || tutor.phase !== 'done'){
+  // routineMode (não phase!) decide quem controla cada um — ver o comentário em makeNpc()
+  if (!tutor.routineMode){
     updateScriptedNpc(tutor, dt, onTutorWaypoint);
   } else {
     updateScheduleAI('tutor', tutor, dt); // vira coordenador de ronda assim que o tour termina
   }
   if (tourStarted){
-    if (novatoA.phase === 'done') updateScheduleAI('novatoA', novatoA, dt); else updateScriptedNpc(novatoA, dt);
-    if (novatoB.phase === 'done') updateScheduleAI('novatoB', novatoB, dt); else updateScriptedNpc(novatoB, dt);
+    if (!novatoA.routineMode){ updateScriptedNpc(novatoA, dt); if (novatoA.phase==='done') novatoA.routineMode = true; }
+    else updateScheduleAI('novatoA', novatoA, dt);
+    if (!novatoB.routineMode){ updateScriptedNpc(novatoB, dt); if (novatoB.phase==='done') novatoB.routineMode = true; }
+    else updateScheduleAI('novatoB', novatoB, dt);
   }
   updateScheduleAI('diego', diego, dt);     // nunca fez parte do tour guiado, mas segue a mesma rotina de horário
   updateScheduleAI('professor', professor, dt); // se afasta um pouco da lousa fora do horário de aula, sempre volta a tempo
@@ -3079,7 +3852,11 @@ function render(){
   const offX = canvas.width/2 - playerScreen.x;
   const offY = canvas.height/2 - playerScreen.y;
 
-  // floor / wall tiles
+  // depth-sorted entities + props (declarada aqui em cima agora — paredes entram nela também,
+  // ver abaixo. Precisa existir antes do laço de tiles porque as paredes são empurradas pra dentro dela)
+  const drawables = [];
+
+  // chão: sempre "no piso", nunca precisa de ordenação de profundidade contra personagens
   for (let r=0;r<ROWS;r++){
     for (let c=0;c<COLS;c++){
       const ch = grid[r][c];
@@ -3087,8 +3864,15 @@ function render(){
       const sx = s.x+offX, sy = s.y+offY;
       if (sx < -80 || sx > canvas.width+80 || sy < -120 || sy > canvas.height+80) continue;
       if (ch === '#'){
-        drawBlock(sx, sy, WALL_HEIGHT, PAL.wallTop, PAL.wallLeft, PAL.wallRight);
-        drawWallTexture(sx, sy, WALL_HEIGHT);
+        const drawWall = ()=>{
+          drawBlock(sx, sy, WALL_HEIGHT, PAL.wallTop, PAL.wallLeft, PAL.wallRight);
+          drawWallTexture(sx, sy, WALL_HEIGHT);
+        };
+        drawWall(); // desenha já, igual antes — mantém a relação certa com o telhado (desenhado logo a seguir)
+        // ...e desenha de novo depois, na hora certa da ordenação de profundidade: uma parede pode
+        // ficar NA FRENTE do jogador/NPC dependendo de onde a câmera olha (ex: fachada de uma casa),
+        // então precisa poder repintar por cima de um personagem que ficou "atrás" dela
+        drawables.push({ depth: c+r, draw: drawWall });
       } else {
         drawDiamond(sx, sy, tileColor(ch,c,r));
         drawTileTexture(ch, sx, sy, c, r);
@@ -3101,21 +3885,34 @@ function render(){
   // roofs — Sims-style cutaway: skip drawing a building's roof while the player is inside it
   (window.__buildings||[]).forEach(b=>{
     if (isInsideBuilding(b)) return;
+    const ridgeRow = Math.round((b.y0+b.y1)/2); // linha de cumeeira, no meio do telhado
     for (let r=b.y0; r<=b.y1; r++){
       for (let c=b.x0; c<=b.x1; c++){
         const s = gridToScreen(c,r);
         const sx = s.x+offX, sy = s.y+offY - WALL_HEIGHT;
         if (sx < -80 || sx > canvas.width+80 || sy < -140 || sy > canvas.height+80) continue;
-        drawDiamond(sx, sy, b.roofColor);
+        // telhado inteiro numa cor só lia como um plano liso — xadrez sutil de telha + cumeeira
+        const shade = (c+r)%2===0 ? b.roofColor : darken(b.roofColor,7);
+        drawDiamond(sx, sy, shade);
+        ctx.strokeStyle = 'rgba(0,0,0,.12)'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(sx-TILE_W/2,sy); ctx.lineTo(sx,sy+TILE_H/2); ctx.stroke(); // linha da telha
+        if (r === ridgeRow){
+          ctx.strokeStyle = 'rgba(0,0,0,.28)'; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(sx-TILE_W/2,sy); ctx.lineTo(sx+TILE_W/2,sy); ctx.stroke();
+        }
       }
     }
   });
 
-  // depth-sorted entities + props
-  const drawables = [];
+  // props e personagens continuam entrando na mesma `drawables` (declarada lá em cima, junto do chão)
   (window.__props||[]).forEach(p=>{
     const s = gridToScreen(p.col,p.row);
-    drawables.push({depth:p.col+p.row, draw:()=> drawProp(s.x+offX, s.y+offY, p.type, p.text)});
+    const sx = s.x+offX, sy = s.y+offY;
+    // mesmo corte de tela que o chão/telhado/NPCs ambiente já tinham — sem isso, TODO prop do
+    // mapa (mais de 130 já, e crescendo a cada rodada de detalhe) era montado e desenhado todo
+    // frame, mesmo a dezenas de tiles fora da câmera
+    if (sx < -100 || sx > canvas.width+100 || sy < -160 || sy > canvas.height+100) return;
+    drawables.push({depth:p.col+p.row, draw:()=> drawProp(sx, sy, p.type, p.text)});
   });
   const NAMED_NPCS = [['tutor',tutor],['novatoA',novatoA],['novatoB',novatoB],['diego',diego],['professor',professor]];
   function nearbyIdleStudent(npc){
@@ -3128,7 +3925,7 @@ function render(){
     drawables.push({depth:n.col+n.row, draw:()=> {
       const sx = s.x+offX, sy = s.y+offY, t = performance.now();
       drawPerson(ctx, sx, sy, n.skin, n.hair, n.shirt, 2.0, livelyFacing(n), isMoving,
-        isAdult ? '#6b5a3a' : PAL.uniformPants, isAdult ? '#3a2f1e' : PAL.uniformShoe);
+        isAdult ? '#6b5a3a' : PAL.uniformPants, isAdult ? '#3a2f1e' : PAL.uniformShoe, undefined, !!n.seated, n);
       if (n.role==='novato' && n.phase==='stand'){
         drawIdleQuirk(key, sx, sy, t);
         if (nearbyIdleStudent(n)) drawChatBubble(sx, sy, t, n.col);
@@ -3145,13 +3942,13 @@ function render(){
     if (sx < -100 || sx > canvas.width+100 || sy < -160 || sy > canvas.height+100) return; // cheap culling, there are a few of these now
     drawables.push({depth:n.col+n.row, draw:()=> {
       const t = performance.now();
-      drawPerson(ctx, sx, sy, n.skin, n.hair, n.shirt, 2.0, livelyFacing(n), !!n.moving, n.pants, n.shoe);
+      drawPerson(ctx, sx, sy, n.skin, n.hair, n.shirt, 2.0, livelyFacing(n), !!n.moving, n.pants, n.shoe, undefined, undefined, n);
       drawActivityProp(n, sx, sy, t);
     }});
   });
   {
     const s = gridToScreen(player.col, player.row);
-    drawables.push({depth:player.col+player.row+0.001, draw:()=> drawPerson(ctx, s.x+offX, s.y+offY, player.skin, player.hair, player.shirt, 2.0, player.facing, player.moving, undefined, undefined, player.hat)});
+    drawables.push({depth:player.col+player.row+0.001, draw:()=> drawPerson(ctx, s.x+offX, s.y+offY, player.skin, player.hair, player.shirt, 2.0, player.facing, player.moving, undefined, undefined, player.hat, undefined, player)});
   }
   drawables.sort((a,b)=>a.depth-b.depth);
   drawables.forEach(d=>d.draw());
