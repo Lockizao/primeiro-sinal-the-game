@@ -215,6 +215,16 @@ canvas#game{ display:block; width:100%; height:auto; background:#8fbf76; }
   display:flex; justify-content:space-between; align-items:flex-start; gap:8px; flex-wrap:wrap;
   pointer-events:none; z-index:4;
 }
+/* essencial (fase/relógio/dinheiro) sempre visível, num grupo só e compacto; data/clima ficam
+   escondidos atrás do "⋯" por padrão — menos informação solta na tela, sem perder nada de fato */
+#hud-essential, #hud-extra{ display:flex; align-items:center; gap:6px; }
+#hud-more-toggle{
+  pointer-events:auto; cursor:pointer;
+  font-family:'Space Mono',monospace; font-size:.85rem;
+  background:rgba(20,29,24,.82); color:#f3ecd8;
+  border:1px solid rgba(255,255,255,.15); border-radius:999px;
+  width:26px; height:26px; line-height:1; padding:0;
+}
 .hud-pill{
   font-family:'Space Mono',monospace; font-size:.78rem; letter-spacing:.03em;
   background:rgba(20,29,24,.82); color:#f3ecd8;
@@ -513,20 +523,28 @@ kbd{ background:var(--green-deep); color:#fff; padding:1px 6px; border-radius:3p
       <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
       <canvas id="game" width="960" height="600"></canvas>
       <div id="touch-controls">
+        <!-- ícones de girar (não de andar de lado): desde que a câmera virou 3D em terceira
+             pessoa, esquerda/direita GIRAM o personagem (controle "de tanque"), não fazem ele
+             deslizar lateralmente — os ícones antigos (◀▶) diziam o contrário do que o botão faz -->
         <div id="touch-dpad">
-          <button type="button" class="tpad" data-dir="up">▲</button>
-          <button type="button" class="tpad" data-dir="left">◀</button>
-          <button type="button" class="tpad" data-dir="right">▶</button>
-          <button type="button" class="tpad" data-dir="down">▼</button>
+          <button type="button" class="tpad" data-dir="up" title="Andar pra frente">▲</button>
+          <button type="button" class="tpad" data-dir="left" title="Girar à esquerda">⟲</button>
+          <button type="button" class="tpad" data-dir="right" title="Girar à direita">⟳</button>
+          <button type="button" class="tpad" data-dir="down" title="Andar pra trás">▼</button>
         </div>
         <button type="button" id="touch-interact">E</button>
       </div>
       <div id="hud">
-        <span class="hud-pill" id="hud-phase">🎒 A caminho da escola</span>
-        <span class="hud-pill mono" id="hud-clock">07:10</span>
-        <span class="hud-pill mono" id="hud-money">💰 R$ 0</span>
-        <span class="hud-pill" id="hud-season" title="Ver calendário completo na ficha (Tab)">🌱 2 Fev</span>
-        <span class="hud-pill" id="hud-weather">🍃 Brisa agradável</span>
+        <div id="hud-essential">
+          <span class="hud-pill" id="hud-phase">🎒 A caminho da escola</span>
+          <span class="hud-pill mono" id="hud-clock">07:10</span>
+          <span class="hud-pill mono" id="hud-money">💰 R$ 0</span>
+          <button type="button" id="hud-more-toggle" title="Mais informações">⋯</button>
+        </div>
+        <div id="hud-extra" hidden>
+          <span class="hud-pill" id="hud-season" title="Ver calendário completo na ficha (Tab)">🌱 2 Fev</span>
+          <span class="hud-pill" id="hud-weather">🍃 Brisa agradável</span>
+        </div>
         <span class="hud-player"><span class="hud-swatch" id="hud-swatch"></span><span id="hud-name">aluno(a)</span></span>
       </div>
       <div id="stat-bars">
@@ -663,6 +681,7 @@ kbd{ background:var(--green-deep); color:#fff; padding:1px 6px; border-radius:3p
 
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 (function(){
 "use strict";
@@ -686,6 +705,9 @@ const PAL = {
   cantina:'#e0b36a', cantinaAlt:'#d4a55c',
   banheiro:'#8fb8c9', banheiroAlt:'#84acbc',
   kiosk:'#d9b877', kioskAlt:'#cdac6a',
+  road:'#3a3f47', roadAlt:'#343941', roadLine:'#e8d9b0',
+  biblioteca:'#a88a5e', bibliotecaAlt:'#9c7e53',
+  laboratorio:'#8fb0a8', laboratorioAlt:'#84a49c',
   schoolRoof:'#8a4a3a',
   wallTop:'#8a7b5c', wallLeft:'#5f5340', wallRight:'#75684d',
   fountainBasin:'#5aa7c9', fountainWater:'#bfe6f2',
@@ -726,7 +748,7 @@ function noise2(x,y,salt){
 /* ============================================================
    MAP
    ============================================================ */
-const COLS = 30, ROWS = 76, TILE_W = 64, TILE_H = 32;
+const COLS = 30, ROWS = 84, TILE_W = 64, TILE_H = 32;
 const WALL_HEIGHT = 74; // tall enough that a wall reads as an actual wall next to a ~90px-tall sprite
 let grid = [];
 function fillGrid(ch){ grid = []; for (let r=0;r<ROWS;r++){ grid.push(new Array(COLS).fill(ch)); } }
@@ -752,8 +774,15 @@ function buildMap(renda){
   });
   room(0,7,29,7,'p');                 // sidewalk connecting every house
   room(0,8,29,27,'.');                // open street/yard — long enough to actually feel like a walk
-  room(10,8,11,27,'p');               // paved path from the player's house down to the gate
+  room(10,8,11,27,'p');               // calçada de pedestres, do portão de casa até o da escola
+  room(13,8,14,27,'r');               // avenida — pista de asfalto separada da calçada, pros carros
   grid[16][4]='k'; grid[16][5]='k'; grid[17][4]='k'; grid[17][5]='k'; // quiosque, a little landmark along the way
+
+  // ---- comércio e mais casas ao longo da avenida ----
+  room(1,9,5,13,'#');  room(2,10,4,12,'n');  grid[13][3]='D';   // Mercadinho
+  room(24,11,28,15,'#'); room(25,12,27,14,'n'); grid[15][26]='D'; // Padaria
+  room(1,22,5,26,'#'); room(2,23,4,25,'n');  grid[26][3]='D';   // Casa da Beatriz
+  room(24,22,28,26,'#'); room(25,23,27,25,'n'); grid[26][26]='D'; // Casa do Seu Nelson
 
   /* ---- terreno da escola: um quintal gigante envolvendo o campus inteiro, e o prédio
      principal agora É de verdade — paredes de fato entre cada ambiente, com portas nos
@@ -792,6 +821,13 @@ function buildMap(renda){
 
   room(3,71,27,75,'a');               // auditório — o corredor desemboca direto nele, num salão amplo
 
+  // biblioteca e laboratório, mais uma ala nova ao sul do auditório — a linha 76 inteira fica
+  // parede por padrão (nunca é carve()ada), então já separa auditório dessas duas salas sozinha
+  room(3,77,12,82,'l');               // biblioteca
+  grid[76][6]='D';
+  room(15,77,27,82,'i');              // laboratório
+  grid[76][21]='D';
+
   // corredor de armários: fileiras dos dois lados do hall + o bebedouro
   [4,5,6,7,8, 18,19,20,21,22].forEach(c=>{ grid[47][c]='K'; });
   grid[49][15]='W';
@@ -806,7 +842,11 @@ function buildBuildings(renda){
     { name:'Sua casa',        x0:8,  y0:1, x1:12, y1:5, roofColor: darken(renda==='alta'?PAL.homeHigh:PAL.homeLow,18) },
     { name:'Casa da Larissa', x0:15, y0:1, x1:19, y1:5, roofColor: darken(PAL.house2,18) },
     { name:'Casa do Diego',   x0:22, y0:1, x1:26, y1:5, roofColor: darken(PAL.house3,18) },
-    { name:'Escola',          x0:2,  y0:46,x1:27, y1:75, roofColor: PAL.schoolRoof },
+    { name:'Escola',          x0:2,  y0:46,x1:27, y1:82, roofColor: PAL.schoolRoof },
+    { name:'Mercadinho',      x0:1,  y0:9, x1:5,  y1:13, roofColor: darken('#e6c37f',18) },
+    { name:'Padaria',         x0:24, y0:11,x1:28, y1:15, roofColor: darken('#e6c37f',18) },
+    { name:'Casa da Beatriz', x0:1,  y0:22,x1:5,  y1:26, roofColor: darken(PAL.house2,18) },
+    { name:'Casa do Seu Nelson', x0:24, y0:22, x1:28, y1:26, roofColor: darken(PAL.house3,18) },
   ];
 }
 
@@ -852,8 +892,21 @@ function buildProps(renda){
     {col:2,   row:14,  type:'tree'},
     {col:27,  row:16,  type:'tree'},
     {col:16,  row:22,  type:'tree'},
+    {col:7,   row:9,   type:'tree'}, {col:22, row:9, type:'tree'},
+    {col:9,   row:24,  type:'tree'}, {col:20, row:24, type:'tree'},
     {col:4.5, row:16.5, type:'kioskStand'},
     {col:4.5, row:15.6, type:'sign', text:'Quiosque'},
+
+    // ---- avenida: comércio e mais duas casas (placa sempre perto da porta de cada uma) ----
+    // 'counterDecor', não 'counter': só o balcão da cantina de verdade pode usar 'counter' — é
+    // ele que vira o interactable "cantina" em startGame() via `props.find(p=>p.type==='counter')`,
+    // que pega sempre o PRIMEIRO da lista (mesmo cuidado documentado acima pra 'bed'/'bedDecor')
+    {col:3, row:11, type:'counterDecor'}, {col:3, row:13.6, type:'sign', text:'Mercadinho'},
+    {col:26, row:13, type:'counterDecor'}, {col:26, row:15.6, type:'sign', text:'Padaria'},
+    {col:3, row:23.5, type:'bedDecor'}, {col:4, row:24.5, type:'rug', text:RUG_COLORS.larissa},
+    {col:3, row:26.6, type:'sign', text:'Casa da Beatriz'},
+    {col:26, row:23.5, type:'bedDecor'}, {col:26, row:24.5, type:'rug', text:'#7a6a52'},
+    {col:26, row:26.6, type:'sign', text:'Casa do Seu Nelson'},
 
     // ---- escola: estacionamento de ônibus, estilo americano ----
     {col:1, row:30.2, type:'busProp'}, {col:3, row:30.2, type:'busProp'}, {col:5, row:30.2, type:'busProp'},
@@ -935,6 +988,17 @@ function buildProps(renda){
     {col:15, row:71.3, type:'sign', text:'Auditório'},
     {col:6,row:74,type:'chair'}, {col:9,row:74,type:'chair'}, {col:12,row:74,type:'chair'}, {col:15,row:74,type:'chair'},
     {col:18,row:74,type:'chair'}, {col:21,row:74,type:'chair'}, {col:24,row:74,type:'chair'},
+
+    // ---- escola: biblioteca ----
+    {col:4, row:78, type:'sign', text:'Biblioteca'},
+    {col:4,row:79,type:'bookshelf'}, {col:6,row:79,type:'bookshelf'}, {col:8,row:79,type:'bookshelf'}, {col:10,row:79,type:'bookshelf'},
+    {col:5,row:81,type:'diningTable'}, {col:5,row:80.5,type:'chair'}, {col:5,row:81.5,type:'chair'},
+    {col:9,row:81,type:'diningTable'}, {col:9,row:80.5,type:'chair'}, {col:9,row:81.5,type:'chair'},
+
+    // ---- escola: laboratório ----
+    {col:17, row:78, type:'sign', text:'Laboratório'},
+    {col:17,row:79,type:'counterDecor'}, {col:20,row:79,type:'counterDecor'}, {col:23,row:79,type:'counterDecor'}, {col:26,row:79,type:'counterDecor'},
+    {col:17,row:81,type:'chair'}, {col:20,row:81,type:'chair'}, {col:23,row:81,type:'chair'}, {col:26,row:81,type:'chair'},
   ];
   if (renda === 'alta'){
     props.push({col:11.4, row:1.6, type:'tv'});
@@ -1611,7 +1675,7 @@ function resetNpcs(){
    ============================================================ */
 const AMBIENT_NPCS = [
   { name:'Seu Zé',    skin:'#b97a4e', hair:'#8f8f8f', shirt:'#5a6a4a', pants:'#3a3a3a', shoe:'#22262b', col:12,  row:31.5, activity:'sweep', wanderRadius:1.6 },
-  { name:'Beatriz',   skin:'#e0a878', hair:'#3a2a55', shirt:'#c9c3b3',                                col:14,  row:10,   activity:'read', wanderRadius:1.2 },
+  { name:'Beatriz',   skin:'#e0a878', hair:'#3a2a55', shirt:'#c9c3b3',                                col:16,  row:10,   activity:'read', wanderRadius:1.2 }, // longe da avenida nova (cols13-14)
   { name:'Sr. Ari',   skin:'#8a5a35', hair:'#2b2018', shirt:'#7a6a52', pants:'#4a3f2e',              col:25,  row:9,    activity:'newspaper', wanderRadius:1.2 },
   { name:'Seu Nelson', skin:'#5c3a22', hair:'#2b2018', shirt:'#ec9a2e', pants:'#5a4a30',             col:6.3, row:16.5, activity:'idle' },
   { name:'Rafael',    skin:'#f4c9a0', hair:'#5c3a22', shirt:'#6fb8dc',                               col:8,   row:21,   activity:'idle', wanderRadius:1.8 },
@@ -1622,15 +1686,41 @@ const AMBIENT_NPCS = [
   // merendeira da cantina — fica atrás do balcão o dia todo, mas a cantina só "funciona" (vende
   // comida de verdade) na hora certa, ver o gate de horário dentro de handleInteractKey/type cantina
   { name:'Dona Marta', skin:'#c9915a', hair:'#5c3a22', shirt:'#ece6d6', pants:'#c9a15a', col:14, row:60.6, activity:'serve', wanderRadius:0.4 },
+  // ciclista pedalando de um lado pro outro da avenida — mesma ideia de patrulha do Gabriel, só
+  // que ao longo da LINHA (rowA/rowB) em vez da coluna, ver updateAmbients()
+  { name:'Ciclista', skin:'#c9915a', hair:'#2b2018', shirt:'#e0592c', col:9, row:9, rowA:9, rowB:26, dir:1, speed:4.2, activity:'cycle' },
+  // pedestre extra andando de um lado pro outro da calçada da avenida
+  { name:'Marina', skin:'#f4c9a0', hair:'#5c3a22', shirt:'#c9c3b3', col:10.5, row:9, rowA:9, rowB:26, dir:1, speed:1.4, activity:'stroll' },
 ];
+
+/* carrinhos indo e vindo na avenida — puramente decorativos (sem física real, sem colisão com o
+   jogador), a mesma ideia de patrulha simples que os NPCs ambiente já usavam */
+const VEHICLES = [
+  { col:13.3, row:9,  rowA:9, rowB:26, dir:1,  speed:5.2, color:'#c0392b' },
+  { col:14.2, row:20, rowA:9, rowB:26, dir:-1, speed:4.4, color:'#2b6fa8' },
+];
+function updateVehicles(dt){
+  VEHICLES.forEach(v=>{
+    v.row += v.dir*v.speed*dt;
+    if (v.row > v.rowB){ v.row = v.rowB; v.dir = -1; }
+    if (v.row < v.rowA){ v.row = v.rowA; v.dir = 1; }
+  });
+}
 
 function updateAmbients(dt){
   AMBIENT_NPCS.forEach(n=>{
-    if (n.activity === 'patrol'){
-      n.col += n.dir*n.speed*dt;
-      if (n.col > n.colB){ n.col = n.colB; n.dir = -1; }
-      if (n.col < n.colA){ n.col = n.colA; n.dir = 1; }
-      n.facing = n.dir > 0 ? 'right' : 'left';
+    if (n.activity === 'patrol' || n.activity === 'cycle' || n.activity === 'stroll'){
+      if (n.colA !== undefined){
+        n.col += n.dir*n.speed*dt;
+        if (n.col > n.colB){ n.col = n.colB; n.dir = -1; }
+        if (n.col < n.colA){ n.col = n.colA; n.dir = 1; }
+        n.facing = n.dir > 0 ? 'right' : 'left';
+      } else {
+        n.row += n.dir*n.speed*dt;
+        if (n.row > n.rowB){ n.row = n.rowB; n.dir = -1; }
+        if (n.row < n.rowA){ n.row = n.rowA; n.dir = 1; }
+        n.facing = n.dir > 0 ? 'down' : 'up';
+      }
       n.moving = true;
       return;
     }
@@ -1815,7 +1905,13 @@ function init(){
   });
 
   document.getElementById('btn-to-family').addEventListener('click', ()=>{
-    if (!player.name) player.name = 'Aluno(a)';
+    // antes dava pra clicar direto sem digitar nada — o nome vazio virava "Aluno(a)" sem
+    // avisar, e dava pra chegar no jogo sem ter escolhido nada de verdade. Agora trava aqui.
+    if (!player.name){
+      showToast('Escolha um nome pro seu personagem antes de continuar!', 2600);
+      document.getElementById('in-name').focus();
+      return;
+    }
     showScreen('screen-family');
   });
 
@@ -1850,6 +1946,10 @@ function init(){
     e.currentTarget.disabled = true; // ver comentário no listener de btn-continue; reabilitado em openDayEnd()
     startNextDay();
   });
+  document.getElementById('hud-more-toggle').addEventListener('click', ()=>{
+    const extra = document.getElementById('hud-extra');
+    extra.hidden = !extra.hidden;
+  });
   document.getElementById('btn-npc-editor').addEventListener('click', openNpcEditor);
   document.getElementById('btn-close-npc-editor').addEventListener('click', closeNpcEditor);
 
@@ -1879,8 +1979,13 @@ function init(){
   touchInteract.addEventListener('click', safeInteract);
 
   canvas = document.getElementById('game');
-  ctx = canvas.getContext('2d');
-  ctx.imageSmoothingEnabled = false;
+  // NÃO pega contexto '2d' aqui — o WebGLRenderer do Three.js precisa reivindicar o contexto do
+  // canvas pra si (um <canvas> só aceita UM tipo de contexto pra sempre). Todo o desenho 2D antigo
+  // (drawDiamond/drawBlock/tileColor/drawProp/render() isométrico) fica pra trás como código morto,
+  // exceto `drawPerson`/`buildSpriteFrame`/`getSprite`, que continuam vivos: os dois preview de
+  // personagem (criação e editor de NPC) usam canvases PRÓPRIOS e independentes, então continuam
+  // funcionando exatamente como antes.
+  initThree();
 
   window.addEventListener('keydown', e=>{
     const k = e.key.toLowerCase();
@@ -2063,8 +2168,9 @@ function startGame(restoreData){
   window.__props = props;
   window.__lockerNums = lockerNums;
   window.__buildings = buildBuildings(player.renda);
+  build3DWorld(); // reconstrói o mundo 3D inteiro a partir do grid/props que acabaram de ser gerados
 
-  player.col = 10; player.row = 2.5; player.facing='down';
+  player.col = 10; player.row = 2.5; player.facing='down'; player.yaw = 0; // yaw 0 = de frente pro +row ("down"/sul), igual o facing antigo
   if (!restoreData){
     player.stats = { health:100, energy:100, mood:80 };
     player.money = player.renda === 'alta' ? 35 : 8; // mesada do dia, ligada à renda da família
@@ -2367,6 +2473,9 @@ function tileColor(ch,col,row){
     case 'o': return checker?PAL.diretoria:PAL.diretoriaAlt;
     case 'z': return checker?PAL.poolTile:PAL.poolTileAlt; // calçada/borda da piscina
     case 'x': return checker?PAL.poolWater:PAL.poolWaterDeep; // água da piscina — não andável, ver isWalkable
+    case 'r': return checker?PAL.road:PAL.roadAlt;
+    case 'l': return checker?PAL.biblioteca:PAL.bibliotecaAlt;
+    case 'i': return checker?PAL.laboratorio:PAL.laboratorioAlt;
     default: return PAL.grass;
   }
 }
@@ -3759,6 +3868,398 @@ function openPhysEd(){
    ============================================================ */
 let lastTime = performance.now();
 
+/* ============================================================
+   MOTOR 3D — câmera em terceira pessoa, sem nenhuma projeção
+   isométrica. O mapa lógico (grid[][], via buildMap/buildProps)
+   continua sendo a única "planta baixa" do jogo — o que muda por
+   completo é COMO isso é desenhado: geometria 3D de verdade em vez
+   de losangos 2D, com luz/sombra reais em vez de sombreado pintado
+   à mão. Estilo propositalmente "3D antigo" (blocos simples, sem
+   textura fina) — referência de câmera: School Days, do MDickie.
+   ============================================================ */
+const TILE_SIZE = 3;       // 1 célula do grid = 3 unidades no mundo 3D
+const WALL_HEIGHT_3D = TILE_SIZE*1.5;
+let scene3d, camera3d, renderer3d, worldGroup, propsGroup, rigsGroup, vehiclesGroup;
+let sunLight, hemiLight;
+const lampLights = [];
+let roofMeshes = [];
+let playerRig, camYaw = 0;
+const npcRigs = new Map();
+const vehicleMeshes = new Map();
+
+function gridToWorld(col,row){ return { x: col*TILE_SIZE, z: row*TILE_SIZE }; }
+const FACING_YAW = { down:0, right:Math.PI/2, up:Math.PI, left:-Math.PI/2 };
+function lerpAngle(a,b,t){
+  const diff = ((b-a+Math.PI)%(Math.PI*2)+Math.PI*2)%(Math.PI*2) - Math.PI;
+  return a + diff*t;
+}
+
+function initThree(){
+  scene3d = new THREE.Scene();
+  scene3d.background = new THREE.Color('#bcdce6');
+  scene3d.fog = new THREE.Fog('#bcdce6', TILE_SIZE*10, TILE_SIZE*46);
+
+  camera3d = new THREE.PerspectiveCamera(58, canvas.width/canvas.height, 0.1, 800);
+
+  renderer3d = new THREE.WebGLRenderer({ canvas, antialias:true });
+  renderer3d.setSize(canvas.width, canvas.height, false);
+  renderer3d.shadowMap.enabled = true;
+
+  hemiLight = new THREE.HemisphereLight('#cfe8f2', '#4f5a44', 0.8);
+  scene3d.add(hemiLight);
+  sunLight = new THREE.DirectionalLight('#fff3d6', 1.05);
+  sunLight.position.set(40, 60, 30);
+  sunLight.castShadow = true;
+  sunLight.shadow.mapSize.set(1024,1024);
+  const sc = sunLight.shadow.camera;
+  sc.left=-70; sc.right=70; sc.top=70; sc.bottom=-70; sc.near=1; sc.far=220;
+  scene3d.add(sunLight, sunLight.target);
+
+  worldGroup = new THREE.Group(); scene3d.add(worldGroup);
+  propsGroup = new THREE.Group(); scene3d.add(propsGroup);
+  rigsGroup = new THREE.Group(); scene3d.add(rigsGroup);
+  // grupos que NÃO são apagados/reconstruídos a cada dia em build3DWorld() (só chão/paredes/props
+  // são) — carrinhos e bonecos precisam sobreviver à virada de dia, senão ficam com uma referência
+  // "fantasma" apontando pra um mesh já destruído e somem da tela pra sempre a partir do Dia 2
+  vehiclesGroup = new THREE.Group(); scene3d.add(vehiclesGroup);
+
+  // gramado infinito por baixo de tudo, pra nunca aparecer "vazio" além das bordas do mapa
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(3000,3000), new THREE.MeshLambertMaterial({ color:'#6b8f5a' }));
+  ground.rotation.x = -Math.PI/2; ground.position.y = -0.2; ground.receiveShadow = true;
+  scene3d.add(ground);
+}
+
+// libera geometria/material de um objeto E DE TODOS OS DESCENDENTES DELE — a maioria dos props
+// é um THREE.Group com vários Mesh dentro (não um Mesh sozinho), então só olhar .geometry/.material
+// do próprio objeto não liberava nada de verdade; vazava GPU a cada `build3DWorld()` (todo dia novo)
+function disposeObject3D(obj){
+  obj.traverse(child=>{
+    if (child.geometry) child.geometry.dispose();
+    if (child.material){ (Array.isArray(child.material)?child.material:[child.material]).forEach(m=>m.dispose()); }
+  });
+}
+function disposeGroupChildren(group){
+  while (group.children.length){
+    disposeObject3D(group.children.pop());
+  }
+}
+
+/* reconstrói o mundo 3D inteiro a partir do grid[][]/buildProps() que buildMap() acabou de gerar
+   — chamado de startGame() a cada dia novo, igual o mapa 2D antigo era "redesenhado" a cada frame */
+function build3DWorld(){
+  disposeGroupChildren(worldGroup);
+  disposeGroupChildren(propsGroup);
+  roofMeshes = [];
+  lampLights.length = 0;
+
+  const dummy = new THREE.Object3D();
+  const floorBuckets = new Map();
+  let wallCount = 0;
+  for (let r=0;r<ROWS;r++){
+    for (let c=0;c<COLS;c++){
+      const ch = grid[r][c];
+      if (ch === '#'){ wallCount++; continue; }
+      const color = tileColor(ch,c,r);
+      if (!floorBuckets.has(color)) floorBuckets.set(color, []);
+      floorBuckets.get(color).push({c, r, water: ch==='x'});
+    }
+  }
+  floorBuckets.forEach((cells,color)=>{
+    const mesh = new THREE.InstancedMesh(
+      new THREE.BoxGeometry(TILE_SIZE, 0.2, TILE_SIZE),
+      new THREE.MeshLambertMaterial({ color }),
+      cells.length
+    );
+    mesh.receiveShadow = true;
+    cells.forEach((cell,i)=>{
+      dummy.position.set(cell.c*TILE_SIZE, cell.water?-0.35:-0.1, cell.r*TILE_SIZE);
+      dummy.updateMatrix();
+      mesh.setMatrixAt(i, dummy.matrix);
+    });
+    worldGroup.add(mesh);
+  });
+
+  if (wallCount > 0){
+    const wallMesh = new THREE.InstancedMesh(
+      new THREE.BoxGeometry(TILE_SIZE, WALL_HEIGHT_3D, TILE_SIZE),
+      new THREE.MeshLambertMaterial({ color: PAL.wallTop }),
+      wallCount
+    );
+    wallMesh.castShadow = true; wallMesh.receiveShadow = true;
+    let i = 0;
+    for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++){
+      if (grid[r][c] !== '#') continue;
+      dummy.position.set(c*TILE_SIZE, WALL_HEIGHT_3D/2, r*TILE_SIZE);
+      dummy.updateMatrix();
+      wallMesh.setMatrixAt(i, dummy.matrix);
+      i++;
+    }
+    worldGroup.add(wallMesh);
+  }
+
+  // telhados: um plano por prédio (mesma lista de sempre), escondido quando o jogador entra
+  (window.__buildings||[]).forEach(b=>{
+    const w = (b.x1-b.x0+1)*TILE_SIZE, d = (b.y1-b.y0+1)*TILE_SIZE;
+    const cx = (b.x0+b.x1)/2*TILE_SIZE, cz = (b.y0+b.y1)/2*TILE_SIZE;
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(w,0.5,d), new THREE.MeshLambertMaterial({ color:b.roofColor }));
+    roof.position.set(cx, WALL_HEIGHT_3D+0.25, cz);
+    roof.castShadow = true;
+    worldGroup.add(roof);
+    roofMeshes.push({ mesh:roof, building:b });
+  });
+
+  // armários/bebedouro/portas do corredor também viram prop 3D (antes eram desenhados direto do tile)
+  for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++){
+    const ch = grid[r][c];
+    let propType = null;
+    if (ch==='W') propType = 'fountainProp';
+    else if (ch==='K') propType = 'lockerProp';
+    else if (ch==='D') propType = 'doorFrame';
+    if (propType){
+      const obj = create3DProp(propType);
+      if (obj){ const w = gridToWorld(c,r); obj.position.set(w.x,0,w.z); propsGroup.add(obj); }
+    }
+  }
+
+  (window.__props||[]).forEach(p=>{
+    const obj = create3DProp(p.type, p.text);
+    if (!obj) return;
+    const w = gridToWorld(p.col, p.row);
+    obj.position.set(w.x, 0, w.z);
+    propsGroup.add(obj);
+  });
+
+  // faixa pintada no meio da avenida — tracinhos brancos espaçados, não uma linha contínua
+  for (let r=8; r<=27; r+=2){
+    if (grid[r][13]!=='r') continue;
+    const dash = propBox(0.18, 0.02, 1.1, '#e8d9b0');
+    const w = gridToWorld(13.5, r);
+    dash.position.set(w.x, 0.01, w.z);
+    dash.receiveShadow = false; dash.castShadow = false;
+    worldGroup.add(dash);
+  }
+
+  // vegetação extra espalhada pelo gramado — arbustos, não faz parte de buildProps() (é só
+  // ambientação visual do motor 3D), colocada de forma determinística (mesmo `noise2` que o
+  // chão 2D antigo usava) pra não "tremer"/mudar de lugar a cada dia
+  for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++){
+    if (grid[r][c] !== '.') continue;
+    const n = noise2(c,r,42);
+    if (n > 0.9){
+      const bush = create3DBush(n);
+      const jitterX = (noise2(c,r,43)-0.5)*0.7, jitterZ = (noise2(c,r,44)-0.5)*0.7;
+      const w = gridToWorld(c, r);
+      bush.position.set(w.x+jitterX*TILE_SIZE, 0, w.z+jitterZ*TILE_SIZE);
+      propsGroup.add(bush);
+    }
+  }
+}
+
+function create3DBush(seed){
+  const g = new THREE.Group();
+  const season = currentSeason();
+  const scale = 0.28 + seed*0.16;
+  const clump = (r,color,x,z)=>{
+    const m = new THREE.Mesh(new THREE.SphereGeometry(r,8,6), new THREE.MeshLambertMaterial({ color }));
+    m.position.set(x, r*0.75, z); m.castShadow = true; m.receiveShadow = true; g.add(m);
+  };
+  clump(scale, season.tree, 0, 0);
+  clump(scale*0.75, season.treeLight, scale*0.5, scale*0.3);
+  return g;
+}
+
+function propBox(w,h,d,color,offY){
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), new THREE.MeshLambertMaterial({ color }));
+  m.position.y = (offY||0) + h/2;
+  m.castShadow = true; m.receiveShadow = true;
+  return m;
+}
+
+/* representação 3D simples (blocos/formas primitivas, de propósito — nada de textura fina, é o
+   estilo "3D antigo" pedido) pra cada tipo de objeto que buildProps() já posiciona no mapa */
+function create3DProp(type, extra){
+  const g = new THREE.Group();
+  switch(type){
+    case 'bed': case 'bedDecor': {
+      g.add(propBox(1.6,0.5,2.2,PAL.bed));
+      const pillow = propBox(0.6,0.15,0.5,'#ffffff',0.5); pillow.position.z = -0.8; g.add(pillow);
+      break;
+    }
+    case 'sofa': g.add(propBox(1.8,0.7,0.8,PAL.sofa)); break;
+    case 'tv': g.add(propBox(1.2,0.8,0.15,PAL.tv)); break;
+    case 'fridge': g.add(propBox(0.8,1.8,0.8,'#e8eef0')); break;
+    case 'stove': g.add(propBox(0.8,0.9,0.8,'#d8d8d8')); break;
+    case 'wardrobe': g.add(propBox(1.2,2.0,0.6,'#8a5a35')); break;
+    case 'bookshelf': g.add(propBox(1.0,1.6,0.4,'#7a6a52')); break;
+    case 'homeDesk': case 'desk': g.add(propBox(1.2,0.75,0.7,'#c9a15a')); break;
+    case 'diningTable': g.add(propBox(1.3,0.7,1.3,'#c9a15a')); break;
+    case 'chair': g.add(propBox(0.5,0.9,0.5,'#a37c45')); break;
+    case 'counter': case 'counterDecor': g.add(propBox(1.4,0.9,0.7,PAL.counterTop)); break;
+    case 'sink': g.add(propBox(0.7,0.85,0.6,PAL.sink)); break;
+    case 'blackboard': g.add(propBox(2.2,1.3,0.1,'#2f5240')); break;
+    case 'wallclock': g.add(propBox(0.4,0.4,0.1,'#ece6d6')); break;
+    case 'window': {
+      // moldura + vidro montados na altura certa da parede — antes era um vidro flutuando
+      // encostado no chão, agora fica na altura de uma janela de verdade
+      g.add(propBox(1.1,1.3,0.14,'#efe6d0',1.0));
+      g.add(propBox(0.9,1.05,0.06,PAL.windowGlass||'#bcd9e8',1.1));
+      break;
+    }
+    case 'doorFrame': {
+      // moldura simétrica nos 4 cantos do vão — não sei a orientação exata de cada parede na
+      // hora de gerar isso, então em vez de arriscar postes atravessados, uso um "arco" que
+      // fica correto visto de qualquer lado
+      const postH = WALL_HEIGHT_3D*0.62, half = TILE_SIZE/2-0.12, postColor = '#efe6d0';
+      [[-half,-half],[half,-half],[-half,half],[half,half]].forEach(([x,z])=>{
+        const post = propBox(0.16, postH, 0.16, postColor);
+        post.position.x = x; post.position.z = z;
+        g.add(post);
+      });
+      g.add(propBox(TILE_SIZE-0.1, 0.22, TILE_SIZE-0.1, postColor, postH));
+      break;
+    }
+    case 'mirror': g.add(propBox(0.5,1.2,0.08,'#dfeaf0')); break;
+    case 'plant': g.add(propBox(0.5,0.7,0.5,'#4f9e57')); break;
+    case 'rug': g.add(propBox(1.6,0.05,1.2, extra||'#b8492c')); break;
+    case 'deskLamp': g.add(propBox(0.2,0.6,0.2,'#f2d98a')); break;
+    case 'ballRack': g.add(propBox(0.5,0.6,0.5,'#6b4a2c')); break;
+    case 'lamppost': {
+      g.add(propBox(0.15,3.2,0.15,'#3a3a3a'));
+      const lamp = new THREE.PointLight('#ffe9a8', 0, 9);
+      lamp.position.y = 3.3; g.add(lamp);
+      lampLights.push(lamp);
+      break;
+    }
+    case 'bench': g.add(propBox(1.4,0.5,0.5,'#a37c45')); break;
+    case 'mailbox': g.add(propBox(0.3,0.9,0.3,'#3e6fa8')); break;
+    case 'trashcan': g.add(propBox(0.5,0.7,0.5,'#6c7480')); break;
+    case 'flagpole': g.add(propBox(0.12,4.2,0.12,'#8a8a8a')); break;
+    case 'tree': {
+      g.add(propBox(0.3,1.6,0.3,PAL.trunk));
+      const season = currentSeason();
+      const clump = (r,color,x,y,z)=>{
+        const m = new THREE.Mesh(new THREE.SphereGeometry(r,10,8), new THREE.MeshLambertMaterial({ color }));
+        m.position.set(x,y,z); m.castShadow = true; g.add(m);
+      };
+      // copa em vários aglomerados sobrepostos em vez de uma esfera só — dá volume de verdade
+      clump(1.0, darken(season.tree,10), 0, 2.1, 0);
+      clump(0.7, season.tree, -0.5, 2.5, 0.3);
+      clump(0.65, season.tree, 0.55, 2.35, -0.25);
+      clump(0.4, season.treeLight, -0.3, 2.75, 0.15);
+      break;
+    }
+    case 'kioskStand': g.add(propBox(1.6,1.4,1.2,'#e6c37f')); break;
+    case 'sign': g.add(propBox(0.9,0.5,0.08,'#e8e2cf')); break;
+    case 'hoop': {
+      g.add(propBox(0.15,3.2,0.15,PAL.trunk));
+      const board = propBox(1.2,0.8,0.08,PAL.hoopBoard); board.position.y = 3.0; g.add(board);
+      break;
+    }
+    case 'trophyCase': g.add(propBox(1.4,2.4,0.6,PAL.trophyWood||'#7a5a3a')); break;
+    case 'busProp': g.add(propBox(2.6,1.8,1.4,PAL.busYellow||'#f0b429')); break;
+    case 'bikeRackProp': g.add(propBox(1.2,0.6,0.3,'#5c6470')); break;
+    case 'stage': g.add(propBox(3.0,0.5,2.0,'#5a4a72')); break;
+    case 'fountainProp': g.add(propBox(1.0,0.6,1.0,PAL.fountainBasin)); break;
+    case 'lockerProp': g.add(propBox(0.8,1.6,0.6,PAL.locker)); break;
+    default: return null;
+  }
+  return g;
+}
+
+/* carrinho decorativo pra avenida — sem física real, só um objeto que anda de um lado pro outro */
+function createCarMesh(color){
+  const g = new THREE.Group();
+  const body = propBox(1.6,0.6,3.2,color); g.add(body);
+  const cabin = propBox(1.3,0.5,1.6,'#bcd9e8',0.6); cabin.position.z = -0.2; g.add(cabin);
+  const wheelGeo = new THREE.CylinderGeometry(0.28,0.28,0.24,10);
+  const wheelMat = new THREE.MeshLambertMaterial({ color:'#1c1c1c' });
+  [[-0.75,1.1],[0.75,1.1],[-0.75,-1.1],[0.75,-1.1]].forEach(([x,z])=>{
+    const wheel = new THREE.Mesh(wheelGeo, wheelMat);
+    wheel.rotation.z = Math.PI/2; wheel.position.set(x,0.28,z); wheel.castShadow = true;
+    g.add(wheel);
+  });
+  return g;
+}
+/* bicicleta simples — vira filha do rig do ciclista, então herda posição/rotação de graça */
+function createBikeMesh(){
+  const g = new THREE.Group();
+  const frameMat = new THREE.MeshLambertMaterial({ color:'#3a3a3a' });
+  const wheelGeo = new THREE.TorusGeometry(0.32,0.04,6,14);
+  const wheelF = new THREE.Mesh(wheelGeo, frameMat); wheelF.rotation.y = Math.PI/2; wheelF.position.set(0,0.32,0.5); g.add(wheelF);
+  const wheelB = new THREE.Mesh(wheelGeo, frameMat); wheelB.rotation.y = Math.PI/2; wheelB.position.set(0,0.32,-0.5); g.add(wheelB);
+  const bar = new THREE.Mesh(new THREE.BoxGeometry(0.06,0.06,1.1), frameMat); bar.position.set(0,0.5,0); g.add(bar);
+  const seatPost = new THREE.Mesh(new THREE.BoxGeometry(0.06,0.5,0.06), frameMat); seatPost.position.set(0,0.7,-0.35); g.add(seatPost);
+  return g;
+}
+
+/* boneco humanoide "redondo" — cilindros/esferas em vez de caixas, pra parecer um corpo de
+   verdade e não um robô de blocos. Continua tudo geometria primitiva (nada importado de fora),
+   só trocando a forma base: o teto do que dá pra arredondar sem sair de formas nativas do Three.js. */
+function createHumanoidRig(skin, hair, shirt, pants, shoe){
+  pants = pants || PAL.uniformPants; shoe = shoe || PAL.uniformShoe;
+  const rig = new THREE.Group();
+  const lambert = c => new THREE.MeshLambertMaterial({ color:c });
+  const cyl = (rTop,rBot,h,color)=>{ const m = new THREE.Mesh(new THREE.CylinderGeometry(rTop,rBot,h,10), lambert(color)); m.castShadow = true; return m; };
+  const ball = (r,color)=>{ const m = new THREE.Mesh(new THREE.SphereGeometry(r,12,8), lambert(color)); m.castShadow = true; return m; };
+
+  const hipY = 0.9, shoulderY = hipY + 0.72;
+
+  const legPivotL = new THREE.Group(); legPivotL.position.set(-0.16, hipY, 0);
+  const legPivotR = new THREE.Group(); legPivotR.position.set(0.16, hipY, 0);
+  [legPivotL, legPivotR].forEach(pivot=>{
+    const leg = cyl(0.13, 0.11, hipY, pants); leg.position.y = -hipY/2;
+    const shoeMesh = ball(0.15, shoe); shoeMesh.scale.set(1.3, 0.7, 1.6); shoeMesh.position.set(0, -hipY+0.06, 0.05);
+    pivot.add(leg, shoeMesh);
+  });
+
+  const torso = ball(0.34, shirt); torso.scale.set(1.15, 1.35, 0.9); torso.position.y = hipY + 0.4;
+
+  const armPivotL = new THREE.Group(); armPivotL.position.set(-0.43, shoulderY, 0);
+  const armPivotR = new THREE.Group(); armPivotR.position.set(0.43, shoulderY, 0);
+  [armPivotL, armPivotR].forEach(pivot=>{
+    const arm = cyl(0.1, 0.09, 0.6, shirt); arm.position.y = -0.3;
+    const hand = ball(0.11, skin); hand.position.y = -0.66;
+    pivot.add(arm, hand);
+  });
+
+  const head = ball(0.25, skin); head.position.y = shoulderY + 0.36;
+  const hairMesh = ball(0.27, hair); hairMesh.scale.set(1, 0.75, 1); hairMesh.position.y = shoulderY + 0.44;
+
+  rig.add(legPivotL, legPivotR, torso, armPivotL, armPivotR, head, hairMesh);
+  rig.userData.legPivotL = legPivotL; rig.userData.legPivotR = legPivotR;
+  rig.userData.armPivotL = armPivotL; rig.userData.armPivotR = armPivotR;
+  return rig;
+}
+
+function animateRig(rig, moving, seated, t, seed){
+  const u = rig.userData;
+  if (seated){
+    u.legPivotL.rotation.x = -1.3; u.legPivotR.rotation.x = -1.3;
+    u.armPivotL.rotation.x = 0; u.armPivotR.rotation.x = 0;
+    rig.position.y = -0.35;
+    return;
+  }
+  rig.position.y = 0;
+  if (moving){
+    const swing = Math.sin(t/140)*0.6;
+    u.legPivotL.rotation.x = swing; u.legPivotR.rotation.x = -swing;
+    u.armPivotL.rotation.x = -swing*0.8; u.armPivotR.rotation.x = swing*0.8;
+  } else {
+    const idle = Math.sin(t/900+seed)*0.05;
+    u.legPivotL.rotation.x = 0; u.legPivotR.rotation.x = 0;
+    u.armPivotL.rotation.x = idle; u.armPivotR.rotation.x = -idle;
+  }
+}
+
+/* antes o NPC virava instantaneamente entre as 4 direções fixas de `FACING_YAW`, o que ficava
+   "trepidando" — agora ele gira suavemente até a direção nova, do mesmo jeito que a câmera já
+   persegue o jogador (mesmo `lerpAngle`), então dá pra ver o giro em vez de um corte seco */
+function setRigYaw(rig, targetYaw){
+  if (rig.userData.yaw === undefined) rig.userData.yaw = targetYaw;
+  rig.userData.yaw = lerpAngle(rig.userData.yaw, targetYaw, 0.18);
+  rig.rotation.y = rig.userData.yaw;
+}
+
 function loop(now){
   const dt = Math.min(0.05, (now-lastTime)/1000);
   lastTime = now;
@@ -3796,6 +4297,7 @@ function update(dt){
   updateWeather(dt);
   updateParticles(dt);
   updateAmbients(dt);
+  updateVehicles(dt);
 
   // player movement
   const fightModalOpen = !document.getElementById('fight-modal').hidden;
@@ -3803,24 +4305,27 @@ function update(dt){
   const inputLocked = dialogueOpen || fainted || disciplineLock || fightModalOpen || dayEndModalOpen || !document.getElementById('schedule-modal').hidden || sheetOpen() || npcEditorOpen();
   if (inputLocked) player.moving = false; // senão o ciclo de passada fica "andando parado" com o modal aberto
   if (!inputLocked){
-    let dx=0, dy=0;
-    if (KEYS['arrowup']||KEYS['w']) dy -= 1;
-    if (KEYS['arrowdown']||KEYS['s']) dy += 1;
-    if (KEYS['arrowleft']||KEYS['a']) dx -= 1;
-    if (KEYS['arrowright']||KEYS['d']) dx += 1;
-    const moving = dx!==0 || dy!==0;
+    // controle "de tanque", à moda de jogo 3D antigo: A/D giram o personagem, W/S andam pra
+    // frente/trás na direção que ele já está olhando — nada mais é relativo aos eixos da câmera
+    // isométrica antiga (que nem existe mais)
+    const rotSpeed = 2.6, moveSpeed = 3.1;
+    let turn = 0, fwd = 0;
+    if (KEYS['arrowleft']||KEYS['a']) turn -= 1;
+    if (KEYS['arrowright']||KEYS['d']) turn += 1;
+    if (KEYS['arrowup']||KEYS['w']) fwd += 1;
+    if (KEYS['arrowdown']||KEYS['s']) fwd -= 1;
+    if (player.yaw === undefined) player.yaw = 0;
+    player.yaw += turn*rotSpeed*dt;
+    const moving = fwd !== 0;
     player.moving = moving;
-    const stepPhase = walkPhase(moving, performance.now());
+    const gaitPhase = Math.floor(performance.now()/170)%2===0 ? 'legL' : 'legR';
+    const stepPhase = moving ? gaitPhase : 'stand';
     if (moving && stepPhase !== lastFootstepPhase) playFootstep();
     lastFootstepPhase = stepPhase;
     if (moving){
-      const len = Math.hypot(dx,dy);
-      dx/=len; dy/=len;
-      if (Math.abs(dx) > Math.abs(dy)) player.facing = dx>0?'right':'left';
-      else player.facing = dy>0?'down':'up';
-      const speed = 3.1;
-      const nc = player.col + dx*speed*dt;
-      const nr = player.row + dy*speed*dt;
+      const dCol = Math.sin(player.yaw)*fwd, dRow = Math.cos(player.yaw)*fwd;
+      const nc = player.col + dCol*moveSpeed*dt;
+      const nr = player.row + dRow*moveSpeed*dt;
       if (isWalkable(nc, player.row)) player.col = nc;
       if (isWalkable(player.col, nr)) player.row = nr;
     }
@@ -3850,136 +4355,105 @@ function update(dt){
   prompt.hidden = inputLocked || !nearestInteractable();
 }
 
+function nearbyIdleStudent(npc){
+  return [novatoA,novatoB,diego].some(o=> o!==npc && o.phase==='stand' && Math.hypot(o.col-npc.col,o.row-npc.row) < 1.8);
+}
+
+function getOrCreateNpcRig(key, ref, pants, shoe){
+  let info = npcRigs.get(key);
+  if (info && (info.lastSkin!==ref.skin || info.lastHair!==ref.hair || info.lastShirt!==ref.shirt)){
+    // cor mudou (editor de NPC) — reconstrói o boneco com as cores novas em vez de tentar repintar
+    rigsGroup.remove(info.rig);
+    disposeObject3D(info.rig); // senão o boneco antigo (~11 meshes) vaza geometria/material na GPU
+    info = null;
+  }
+  if (!info){
+    const rig = createHumanoidRig(ref.skin, ref.hair, ref.shirt, pants, shoe);
+    rigsGroup.add(rig);
+    info = { rig, lastSkin:ref.skin, lastHair:ref.hair, lastShirt:ref.shirt };
+    npcRigs.set(key, info);
+  }
+  return info.rig;
+}
+
+/* laço principal de desenho — agora é sincronizar a posição/pose de cada boneco 3D com o estado
+   do jogo (que continua todo em col/row, inalterado) e mandar o Three.js renderizar a cena real */
 function render(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const t = performance.now();
 
-  const playerScreen = gridToScreen(player.col, player.row);
-  const offX = canvas.width/2 - playerScreen.x;
-  const offY = canvas.height/2 - playerScreen.y;
-
-  // depth-sorted entities + props (declarada aqui em cima agora — paredes entram nela também,
-  // ver abaixo. Precisa existir antes do laço de tiles porque as paredes são empurradas pra dentro dela)
-  const drawables = [];
-
-  // chão: sempre "no piso", nunca precisa de ordenação de profundidade contra personagens
-  for (let r=0;r<ROWS;r++){
-    for (let c=0;c<COLS;c++){
-      const ch = grid[r][c];
-      const s = gridToScreen(c,r);
-      const sx = s.x+offX, sy = s.y+offY;
-      if (sx < -80 || sx > canvas.width+80 || sy < -120 || sy > canvas.height+80) continue;
-      if (ch === '#'){
-        const drawWall = ()=>{
-          drawBlock(sx, sy, WALL_HEIGHT, PAL.wallTop, PAL.wallLeft, PAL.wallRight);
-          drawWallTexture(sx, sy, WALL_HEIGHT);
-        };
-        drawWall(); // desenha já, igual antes — mantém a relação certa com o telhado (desenhado logo a seguir)
-        // ...e desenha de novo depois, na hora certa da ordenação de profundidade: uma parede pode
-        // ficar NA FRENTE do jogador/NPC dependendo de onde a câmera olha (ex: fachada de uma casa),
-        // então precisa poder repintar por cima de um personagem que ficou "atrás" dela
-        drawables.push({ depth: c+r, draw: drawWall });
-      } else {
-        drawDiamond(sx, sy, tileColor(ch,c,r));
-        drawTileTexture(ch, sx, sy, c, r);
-        if (ch==='W') drawProp(sx,sy,'fountainProp');
-        if (ch==='K') drawProp(sx,sy,'lockerProp', (window.__lockerNums||{})[c+','+r]);
-      }
-    }
+  if (!playerRig){ playerRig = createHumanoidRig(player.skin, player.hair, player.shirt); playerRig.userData.skin=player.skin; playerRig.userData.hair=player.hair; playerRig.userData.shirt=player.shirt; rigsGroup.add(playerRig); }
+  if (playerRig.userData.skin!==player.skin || playerRig.userData.hair!==player.hair || playerRig.userData.shirt!==player.shirt){
+    rigsGroup.remove(playerRig);
+    disposeObject3D(playerRig);
+    playerRig = createHumanoidRig(player.skin, player.hair, player.shirt);
+    rigsGroup.add(playerRig);
   }
+  playerRig.userData.skin = player.skin; playerRig.userData.hair = player.hair; playerRig.userData.shirt = player.shirt;
 
-  // roofs — Sims-style cutaway: skip drawing a building's roof while the player is inside it
-  (window.__buildings||[]).forEach(b=>{
-    if (isInsideBuilding(b)) return;
-    const ridgeRow = Math.round((b.y0+b.y1)/2); // linha de cumeeira, no meio do telhado
-    for (let r=b.y0; r<=b.y1; r++){
-      for (let c=b.x0; c<=b.x1; c++){
-        const s = gridToScreen(c,r);
-        const sx = s.x+offX, sy = s.y+offY - WALL_HEIGHT;
-        if (sx < -80 || sx > canvas.width+80 || sy < -140 || sy > canvas.height+80) continue;
-        // telhado inteiro numa cor só lia como um plano liso — xadrez sutil de telha + cumeeira
-        const shade = (c+r)%2===0 ? b.roofColor : darken(b.roofColor,7);
-        drawDiamond(sx, sy, shade);
-        ctx.strokeStyle = 'rgba(0,0,0,.12)'; ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.moveTo(sx-TILE_W/2,sy); ctx.lineTo(sx,sy+TILE_H/2); ctx.stroke(); // linha da telha
-        if (r === ridgeRow){
-          ctx.strokeStyle = 'rgba(0,0,0,.28)'; ctx.lineWidth = 2;
-          ctx.beginPath(); ctx.moveTo(sx-TILE_W/2,sy); ctx.lineTo(sx+TILE_W/2,sy); ctx.stroke();
-        }
-      }
-    }
-  });
+  const pw = gridToWorld(player.col, player.row);
+  playerRig.position.set(pw.x, 0, pw.z);
+  playerRig.rotation.y = player.yaw||0;
+  animateRig(playerRig, !!player.moving, false, t, 0);
 
-  // props e personagens continuam entrando na mesma `drawables` (declarada lá em cima, junto do chão)
-  (window.__props||[]).forEach(p=>{
-    const s = gridToScreen(p.col,p.row);
-    const sx = s.x+offX, sy = s.y+offY;
-    // mesmo corte de tela que o chão/telhado/NPCs ambiente já tinham — sem isso, TODO prop do
-    // mapa (mais de 130 já, e crescendo a cada rodada de detalhe) era montado e desenhado todo
-    // frame, mesmo a dezenas de tiles fora da câmera
-    if (sx < -100 || sx > canvas.width+100 || sy < -160 || sy > canvas.height+100) return;
-    drawables.push({depth:p.col+p.row, draw:()=> drawProp(sx, sy, p.type, p.text)});
-  });
+  // câmera em terceira pessoa: atrás e acima do personagem, olhando pra ele — o "camYaw" suaviza
+  // a virada (a câmera persegue o personagem em vez de grudar instantânea nas costas dele), sempre
+  // pelo caminho mais curto (senão vira do lado errado quando o ângulo cruza -π/π)
+  camYaw = lerpAngle(camYaw, player.yaw||0, 0.12);
+  const camDist = TILE_SIZE*3.4, camHeight = TILE_SIZE*1.8, lookHeight = 1.4;
+  camera3d.position.set(pw.x - Math.sin(camYaw)*camDist, camHeight, pw.z - Math.cos(camYaw)*camDist);
+  camera3d.lookAt(pw.x, lookHeight, pw.z);
+
   const NAMED_NPCS = [['tutor',tutor],['novatoA',novatoA],['novatoB',novatoB],['diego',diego],['professor',professor]];
-  function nearbyIdleStudent(npc){
-    return [novatoA,novatoB,diego].some(o=> o!==npc && o.phase==='stand' && Math.hypot(o.col-npc.col,o.row-npc.row) < 1.8);
-  }
   NAMED_NPCS.forEach(([key,n])=>{
-    const s = gridToScreen(n.col,n.row);
-    const isMoving = n.phase==='moving';
     const isAdult = n.role==='tutor' || n.role==='professor';
-    drawables.push({depth:n.col+n.row, draw:()=> {
-      const sx = s.x+offX, sy = s.y+offY, t = performance.now();
-      drawPerson(ctx, sx, sy, n.skin, n.hair, n.shirt, 2.0, livelyFacing(n), isMoving,
-        isAdult ? '#6b5a3a' : PAL.uniformPants, isAdult ? '#3a2f1e' : PAL.uniformShoe, undefined, !!n.seated, n);
-      if (n.role==='novato' && n.phase==='stand'){
-        drawIdleQuirk(key, sx, sy, t);
-        if (nearbyIdleStudent(n)) drawChatBubble(sx, sy, t, n.col);
-      }
-      ctx.fillStyle = 'rgba(20,29,24,.75)';
-      ctx.font = '11px Karla, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText(n.name, sx, sy-94);
-    }});
+    const rig = getOrCreateNpcRig('named:'+key, n, isAdult?'#6b5a3a':PAL.uniformPants, isAdult?'#3a2f1e':PAL.uniformShoe);
+    const w = gridToWorld(n.col, n.row);
+    rig.position.set(w.x, 0, w.z);
+    setRigYaw(rig, FACING_YAW[livelyFacing(n)] || 0);
+    animateRig(rig, n.phase==='moving', !!n.seated, t, key.length*7);
   });
-  AMBIENT_NPCS.forEach(n=>{
-    const s = gridToScreen(n.col,n.row);
-    const sx = s.x+offX, sy = s.y+offY;
-    if (sx < -100 || sx > canvas.width+100 || sy < -160 || sy > canvas.height+100) return; // cheap culling, there are a few of these now
-    drawables.push({depth:n.col+n.row, draw:()=> {
-      const t = performance.now();
-      drawPerson(ctx, sx, sy, n.skin, n.hair, n.shirt, 2.0, livelyFacing(n), !!n.moving, n.pants, n.shoe, undefined, undefined, n);
-      drawActivityProp(n, sx, sy, t);
-    }});
+  AMBIENT_NPCS.forEach((n,i)=>{
+    const rig = getOrCreateNpcRig('ambient:'+i, n, n.pants, n.shoe);
+    if (n.activity==='cycle' && !rig.userData.bike){ rig.userData.bike = createBikeMesh(); rig.add(rig.userData.bike); }
+    const w = gridToWorld(n.col, n.row);
+    rig.position.set(w.x, 0, w.z);
+    setRigYaw(rig, FACING_YAW[livelyFacing(n)] || 0);
+    animateRig(rig, !!n.moving, false, t, i*13);
   });
-  {
-    const s = gridToScreen(player.col, player.row);
-    drawables.push({depth:player.col+player.row+0.001, draw:()=> drawPerson(ctx, s.x+offX, s.y+offY, player.skin, player.hair, player.shirt, 2.0, player.facing, player.moving, undefined, undefined, player.hat, undefined, player)});
-  }
-  drawables.sort((a,b)=>a.depth-b.depth);
-  drawables.forEach(d=>d.draw());
 
-  // soft vignette — cheap depth cue, keeps focus on the character
-  const vg = ctx.createRadialGradient(canvas.width/2,canvas.height/2,canvas.height*0.32, canvas.width/2,canvas.height/2,canvas.height*0.78);
-  vg.addColorStop(0,'rgba(0,0,0,0)');
-  vg.addColorStop(1,'rgba(10,16,12,.28)');
-  ctx.fillStyle = vg;
-  ctx.fillRect(0,0,canvas.width,canvas.height);
+  // carrinhos da avenida — objetos simples, sem rig, só posição sincronizada
+  VEHICLES.forEach((v,i)=>{
+    let mesh = vehicleMeshes.get(i);
+    if (!mesh){ mesh = createCarMesh(v.color); vehiclesGroup.add(mesh); vehicleMeshes.set(i, mesh); }
+    const w = gridToWorld(v.col, v.row);
+    mesh.position.set(w.x, 0, w.z);
+    mesh.rotation.y = v.dir > 0 ? 0 : Math.PI;
+  });
 
-  // day/night wash, straight from the clock
+  // telhados — o mesmo cutaway estilo Sims de antes, só que agora é um plano 3D de verdade que
+  // some (em vez de simplesmente não ser desenhado) quando o jogador está dentro do prédio
+  roofMeshes.forEach(({mesh,building})=>{ mesh.visible = !isInsideBuilding(building); });
+
+  // luz/atmosfera seguindo o relógio do jogo — reaproveita os mesmos dados de dia/noite e clima
+  // que antes só tingiam a tela por cima; agora eles alimentam luz e neblina de verdade
   const tod = timeOfDay(gameClockMinutes);
-  if (tod.a > 0.01){
-    ctx.fillStyle = 'rgba('+Math.round(tod.r)+','+Math.round(tod.g)+','+Math.round(tod.b)+','+tod.a.toFixed(2)+')';
-    ctx.fillRect(0,0,canvas.width,canvas.height);
-  }
-
-  // weather wash (rain/hail darken and cool the scene a bit further)
+  const night = Math.min(1, tod.a);
+  hemiLight.intensity = 0.8 - night*0.6;
+  sunLight.intensity = 1.05 - night*0.95;
+  // a luz (e a câmera de sombra dela) precisa seguir o jogador — sem isso ela ficava presa perto
+  // do spawn, e a sombra parava de aparecer em qualquer lugar longe de casa (mapa é gigante agora)
+  sunLight.position.set(pw.x+30, 50, pw.z+20);
+  sunLight.target.position.set(pw.x, 0, pw.z);
+  sunLight.target.updateMatrixWorld();
+  const skyDay = new THREE.Color('#bcdce6'), skyNight = new THREE.Color('#141d2c');
+  const sky = skyDay.clone().lerp(skyNight, night);
   const wtint = WEATHER_DEFS[weather.id].tint;
-  if (wtint){
-    ctx.fillStyle = 'rgba('+wtint.r+','+wtint.g+','+wtint.b+','+wtint.a+')';
-    ctx.fillRect(0,0,canvas.width,canvas.height);
-  }
+  if (wtint) sky.lerp(new THREE.Color('#5a6a70'), wtint.a*0.6);
+  scene3d.background = sky;
+  scene3d.fog.color.copy(sky);
+  lampLights.forEach(l=> l.intensity = tod.isNight ? 1.6 : 0);
 
-  renderParticles();
+  renderer3d.render(scene3d, camera3d);
 }
 
 init();
