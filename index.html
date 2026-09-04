@@ -2941,16 +2941,21 @@ function scheduleZoneOf(row){
 // (alinha no corredor antes de cortar pra porta); sempre que SAI, o inverso (9,54)→(10.5,54) —
 // nos dois sentidos, não só na entrada, senão a saída atravessava a parede sem nunca tocar a porta.
 function insideSala1(pt){ return pt.col <= 8 && pt.row >= 52 && pt.row <= 58; }
+// col9 só é andável exatamente na linha 54 (a porta) — cortar de (9,54) direto pra um assento
+// fora dessa linha (ex: row57) passava pela quina de fora da sala antes de "descobrir" a coluna
+// certa. Por isso a entrada/saída sempre passa primeiro por (colDoAssento, 54), que é piso válido
+// em toda a largura da sala (cols3-8), e só depois sobe/desce reto até o assento — sem diagonal.
 function buildScheduleRoute(npc, target){
   const npcInSala1 = insideSala1(npc), targetInSala1 = insideSala1(target);
+  const clampSala1Col = c => Math.max(3, Math.min(8, c));
   const path = [];
-  if (npcInSala1 && !targetInSala1) path.push({col:9,row:54}, {col:10.5,row:54}); // saída: porta primeiro, depois alinha no corredor
+  if (npcInSala1 && !targetInSala1) path.push({col:clampSala1Col(npc.col),row:54}, {col:9,row:54}, {col:10.5,row:54});
   const from = ZONE_RANK[scheduleZoneOf(npc.row)], to = ZONE_RANK[scheduleZoneOf(target.row)];
   if (from !== to){
     const doors = from < to ? ZONE_DOORS.slice(from, to) : ZONE_DOORS.slice(to, from).slice().reverse();
     path.push(...doors);
   }
-  if (targetInSala1 && !npcInSala1) path.push({col:10.5,row:54}, {col:9,row:54});
+  if (targetInSala1 && !npcInSala1) path.push({col:10.5,row:54}, {col:9,row:54}, {col:clampSala1Col(target.col),row:54});
   path.push(target);
   return path;
 }
